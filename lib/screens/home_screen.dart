@@ -1,16 +1,10 @@
-// lib/screens/home_screen.dart
 import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../widgets/bottom_nav_bar.dart';
-import 'add_plan_screen.dart';
-import 'event_details_screen.dart';
-import '../models/event.dart';
+import '../models/habit.dart';
 
 class HomeScreen extends StatefulWidget {
-  final String? selectedCalendar;
-
-  HomeScreen({this.selectedCalendar});
-
   @override
   _HomeScreenState createState() => _HomeScreenState();
 }
@@ -18,42 +12,38 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   DateTime selectedDay = DateTime.now();
   DateTime focusedDay = DateTime.now();
-  List<Event> selectedEvents = [];
-  List<String> habits = ['habit 1', 'habit 2'];
-  Map<DateTime, List<Event>> events = {};
+  List<Habit> habits = [];
 
   @override
   void initState() {
     super.initState();
-    events[selectedDay] = selectedEvents;
+    // 초기화시 Habit 데이터를 로드합니다.
+    _loadHabits();
   }
 
-  List<Event> _getEventsForDay(DateTime day) {
-    return events[day] ?? [];
-  }
-
-  void _updateEvent(DateTime day, Event oldEvent, Event newEvent) {
+  void _loadHabits() async {
+    List<Habit> loadedHabits = await Habit.loadHabits();
     setState(() {
-      events[day]!.remove(oldEvent);
-      if (events[day] != null) {
-        events[day]!.add(newEvent);
+      habits = loadedHabits;
+    });
+  }
+
+  void _toggleHabitCompletion(Habit habit, DateTime day) {
+    setState(() {
+      if (habit.completionDates.contains(day)) {
+        habit.completionDates.remove(day);
       } else {
-        events[day] = [newEvent];
+        habit.completionDates.add(day);
       }
+      Habit.saveHabits(habits);
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    final arguments = ModalRoute.of(context)?.settings.arguments as Map?;
-    String selectedCalendar = arguments != null && arguments.containsKey('selectedCalendar') ? arguments['selectedCalendar'] : 'Default';
-
-    List<Event> sortedEvents = _getEventsForDay(selectedDay);
-    sortedEvents.sort((a, b) => a.dateTime.compareTo(b.dateTime));
-
     return Scaffold(
       appBar: AppBar(
-        title: Text('Home - $selectedCalendar Calendar'),
+        title: Text('Home'),
       ),
       body: SingleChildScrollView(
         child: Column(
@@ -71,67 +61,59 @@ class _HomeScreenState extends State<HomeScreen> {
                   this.focusedDay = focusedDay;
                 });
               },
-              eventLoader: _getEventsForDay,
             ),
-            Divider(), // 구분선 추가
-            ...sortedEvents.map(
-                  (event) => ListTile(
-                title: Text(event.title),
-                subtitle: Text('${event.dateTime.hour}:${event.dateTime.minute} - ${event.description}'),
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => EventDetailsScreen(
-                        event: event,
-                        onDelete: () {
-                          setState(() {
-                            events[selectedDay]!.remove(event);
-                          });
-                        },
-                        onUpdate: (updatedEvent) {
-                          _updateEvent(selectedDay, event, updatedEvent);
-                        },
+            Divider(),
+            ListView.builder(
+              shrinkWrap: true,
+              physics: NeverScrollableScrollPhysics(),
+              itemCount: habits.length,
+              itemBuilder: (context, index) {
+                Habit habit = habits[index];
+                return Column(
+                  children: [
+                    ListTile(
+                      title: Text(habit.name),
+                      subtitle: Text(habit.frequency),
+                    ),
+                    if (habit.frequency == 'Daily')
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceAround,
+                        children: List.generate(habit.targetCount, (index) {
+                          return Checkbox(
+                            value: habit.completionDates.contains(selectedDay),
+                            onChanged: (bool? value) {
+                              _toggleHabitCompletion(habit, selectedDay);
+                            },
+                          );
+                        }),
                       ),
-                    ),
-                  );
-                },
-              ),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => AddPlanScreen(
-                      onAdd: (event) {
-                        setState(() {
-                          if (events[selectedDay] != null) {
-                            events[selectedDay]!.add(event);
-                          } else {
-                            events[selectedDay] = [event];
-                          }
-                        });
-                      },
-                    ),
-                  ),
+                    if (habit.frequency == 'Weekly')
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceAround,
+                        children: List.generate(7, (index) {
+                          return Checkbox(
+                            value: habit.completionDates.contains(selectedDay.add(Duration(days: index))),
+                            onChanged: (bool? value) {
+                              _toggleHabitCompletion(habit, selectedDay.add(Duration(days: index)));
+                            },
+                          );
+                        }),
+                      ),
+                    if (habit.frequency == 'Monthly')
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceAround,
+                        children: List.generate(habit.targetCount, (index) {
+                          return Checkbox(
+                            value: habit.completionDates.contains(selectedDay.add(Duration(days: index * 7))),
+                            onChanged: (bool? value) {
+                              _toggleHabitCompletion(habit, selectedDay.add(Duration(days: index * 7)));
+                            },
+                          );
+                        }),
+                      ),
+                  ],
                 );
               },
-              child: Text('Add Event'),
-            ),
-            SizedBox(height: 20),
-            Text(
-              'Habit Tracker',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            ...habits.map(
-                  (habit) => CheckboxListTile(
-                title: Text(habit),
-                value: false,
-                onChanged: (newValue) {
-                  setState(() {});
-                },
-              ),
             ),
           ],
         ),

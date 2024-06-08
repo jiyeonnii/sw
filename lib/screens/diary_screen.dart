@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
 import '../widgets/bottom_nav_bar.dart';
 import '../models/habit.dart';
 
@@ -13,6 +15,23 @@ class _DiaryScreenState extends State<DiaryScreen> {
   TextEditingController entryController = TextEditingController();
   List<Habit> habits = [];
   String selectedMood = 'Neutral';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadHabits();
+  }
+
+  void _loadHabits() async {
+    List<Habit> loadedHabits = await Habit.loadHabits();
+    setState(() {
+      habits = loadedHabits;
+    });
+  }
+
+  void _saveHabits() async {
+    await Habit.saveHabits(habits);
+  }
 
   void _addHabit() {
     showDialog(
@@ -75,6 +94,7 @@ class _DiaryScreenState extends State<DiaryScreen> {
                     targetCount: targetCount,
                     completionDates: [],
                   ));
+                  _saveHabits();
                 });
                 Navigator.of(context).pop();
               },
@@ -130,7 +150,8 @@ class _DiaryScreenState extends State<DiaryScreen> {
             ListTile(
               title: TextField(
                 controller: entryController,
-                decoration: InputDecoration(hintText: 'Write your daily entry here'),
+                decoration:
+                InputDecoration(hintText: 'Write your daily entry here'),
                 maxLines: null,
               ),
             ),
@@ -141,27 +162,35 @@ class _DiaryScreenState extends State<DiaryScreen> {
                 children: [
                   IconButton(
                     icon: Icon(Icons.sentiment_very_satisfied),
-                    color: selectedMood == 'Very Satisfied' ? Colors.blue : Colors.grey,
+                    color: selectedMood == 'Very Satisfied'
+                        ? Colors.blue
+                        : Colors.grey,
                     onPressed: () => _setMood('Very Satisfied'),
                   ),
                   IconButton(
                     icon: Icon(Icons.sentiment_satisfied),
-                    color: selectedMood == 'Satisfied' ? Colors.blue : Colors.grey,
+                    color:
+                    selectedMood == 'Satisfied' ? Colors.blue : Colors.grey,
                     onPressed: () => _setMood('Satisfied'),
                   ),
                   IconButton(
                     icon: Icon(Icons.sentiment_neutral),
-                    color: selectedMood == 'Neutral' ? Colors.blue : Colors.grey,
+                    color:
+                    selectedMood == 'Neutral' ? Colors.blue : Colors.grey,
                     onPressed: () => _setMood('Neutral'),
                   ),
                   IconButton(
                     icon: Icon(Icons.sentiment_dissatisfied),
-                    color: selectedMood == 'Dissatisfied' ? Colors.blue : Colors.grey,
+                    color: selectedMood == 'Dissatisfied'
+                        ? Colors.blue
+                        : Colors.grey,
                     onPressed: () => _setMood('Dissatisfied'),
                   ),
                   IconButton(
                     icon: Icon(Icons.sentiment_very_dissatisfied),
-                    color: selectedMood == 'Very Dissatisfied' ? Colors.blue : Colors.grey,
+                    color: selectedMood == 'Very Dissatisfied'
+                        ? Colors.blue
+                        : Colors.grey,
                     onPressed: () => _setMood('Very Dissatisfied'),
                   ),
                 ],
@@ -194,6 +223,7 @@ class _DiaryScreenState extends State<DiaryScreen> {
                               } else {
                                 habit.completionDates.remove(selectedDay);
                               }
+                              _saveHabits();
                             });
                           },
                         );
@@ -204,14 +234,18 @@ class _DiaryScreenState extends State<DiaryScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceAround,
                       children: List.generate(7, (index) {
                         return Checkbox(
-                          value: habit.completionDates.contains(selectedDay.add(Duration(days: index))),
+                          value: habit.completionDates
+                              .contains(selectedDay.add(Duration(days: index))),
                           onChanged: (bool? value) {
                             setState(() {
                               if (value == true) {
-                                habit.completionDates.add(selectedDay.add(Duration(days: index)));
+                                habit.completionDates.add(
+                                    selectedDay.add(Duration(days: index)));
                               } else {
-                                habit.completionDates.remove(selectedDay.add(Duration(days: index)));
+                                habit.completionDates.remove(
+                                    selectedDay.add(Duration(days: index)));
                               }
+                              _saveHabits();
                             });
                           },
                         );
@@ -222,14 +256,18 @@ class _DiaryScreenState extends State<DiaryScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceAround,
                       children: List.generate(habit.targetCount, (index) {
                         return Checkbox(
-                          value: habit.completionDates.contains(selectedDay.add(Duration(days: index * 7))),
+                          value: habit.completionDates.contains(
+                              selectedDay.add(Duration(days: index * 7))),
                           onChanged: (bool? value) {
                             setState(() {
                               if (value == true) {
-                                habit.completionDates.add(selectedDay.add(Duration(days: index * 7)));
+                                habit.completionDates.add(
+                                    selectedDay.add(Duration(days: index * 7)));
                               } else {
-                                habit.completionDates.remove(selectedDay.add(Duration(days: index * 7)));
+                                habit.completionDates.remove(
+                                    selectedDay.add(Duration(days: index * 7)));
                               }
+                              _saveHabits();
                             });
                           },
                         );
@@ -266,4 +304,3 @@ class _DiaryScreenState extends State<DiaryScreen> {
     );
   }
 }
-
