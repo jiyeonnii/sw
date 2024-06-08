@@ -1,14 +1,14 @@
-// lib/screens/home_screen.dart
+// lib/screens/budget_screen.dart
 import 'package:flutter/material.dart';
 import '../widgets/bottom_nav_bar.dart';
 
-class HomeScreen extends StatefulWidget {
+class BudgetScreen extends StatefulWidget {
   @override
-  _HomeScreenState createState() => _HomeScreenState();
+  _BudgetScreenState createState() => _BudgetScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
-  int _selectedIndex = 2;
+class _BudgetScreenState extends State<BudgetScreen> {
+  int _selectedIndex = 1;
 
   void _onItemTapped(int index) {
     setState(() {
@@ -35,7 +35,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<bool> _onWillPop() async {
-    Navigator.pushReplacementNamed(context, '/login');
+    Navigator.pushReplacementNamed(context, '/home');
     return false;
   }
 
@@ -45,10 +45,10 @@ class _HomeScreenState extends State<HomeScreen> {
       onWillPop: _onWillPop,
       child: Scaffold(
         appBar: AppBar(
-          title: Text('Home'),
+          title: Text('Budget'),
         ),
         body: Center(
-          child: Text('Home Screen'),
+          child: Text('Budget Screen'),
         ),
         bottomNavigationBar: BottomNavBar(
           selectedIndex: _selectedIndex,

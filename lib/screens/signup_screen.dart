@@ -1,6 +1,8 @@
+// lib/screens/signup_screen.dart
 import 'package:flutter/material.dart';
+import 'login_screen.dart';
 
-class SignupScreen extends StatelessWidget {
+class SignUpScreen extends StatelessWidget {
   final TextEditingController nameController = TextEditingController();
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
@@ -9,10 +11,10 @@ class SignupScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Signup'),
+        title: Text('Sign Up'),
       ),
       body: Padding(
-        padding: EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(16.0),
         child: Column(
           children: <Widget>[
             TextField(
@@ -31,10 +33,12 @@ class SignupScreen extends StatelessWidget {
             SizedBox(height: 20),
             ElevatedButton(
               onPressed: () {
-                // 회원가입 로직 추가
-                Navigator.pushReplacementNamed(context, '/');
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (context) => LoginScreen()),
+                );
               },
-              child: Text('Signup'),
+              child: Text('Sign Up'),
             ),
           ],
         ),

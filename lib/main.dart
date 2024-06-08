@@ -1,8 +1,12 @@
+// lib/main.dart
 import 'package:flutter/material.dart';
 import 'screens/login_screen.dart';
 import 'screens/signup_screen.dart';
 import 'screens/home_screen.dart';
-import 'screens/add_plan_screen.dart';
+import 'screens/calendar_screen.dart';
+import 'screens/budget_screen.dart';
+import 'screens/map_screen.dart';
+import 'screens/diary_screen.dart';
 
 void main() {
   runApp(PieceOfMemoryApp());
@@ -16,12 +20,15 @@ class PieceOfMemoryApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      initialRoute: '/',
+      home: LoginScreen(),
       routes: {
-        '/': (context) => LoginScreen(),
-        '/signup': (context) => SignupScreen(),
+        '/login': (context) => LoginScreen(),
+        '/signup': (context) => SignUpScreen(),
         '/home': (context) => HomeScreen(),
-        '/add_plan': (context) => AddPlanScreen(selectedDay: DateTime.now()), // Dummy date for initial route
+        '/calendar': (context) => CalendarScreen(),
+        '/budget': (context) => BudgetScreen(),
+        '/map': (context) => MapScreen(),
+        '/diary': (context) => DiaryScreen(),
       },
     );
   }

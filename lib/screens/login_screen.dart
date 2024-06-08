@@ -1,4 +1,6 @@
+// lib/screens/login_screen.dart
 import 'package:flutter/material.dart';
+import 'home_screen.dart';
 
 class LoginScreen extends StatelessWidget {
   final TextEditingController emailController = TextEditingController();
@@ -11,7 +13,7 @@ class LoginScreen extends StatelessWidget {
         title: Text('Login'),
       ),
       body: Padding(
-        padding: EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(16.0),
         child: Column(
           children: <Widget>[
             TextField(
@@ -26,8 +28,10 @@ class LoginScreen extends StatelessWidget {
             SizedBox(height: 20),
             ElevatedButton(
               onPressed: () {
-                // 로그인 로직 추가
-                Navigator.pushReplacementNamed(context, '/home');
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (context) => HomeScreen()),
+                );
               },
               child: Text('Login'),
             ),
@@ -35,7 +39,7 @@ class LoginScreen extends StatelessWidget {
               onPressed: () {
                 Navigator.pushNamed(context, '/signup');
               },
-              child: Text('Signup'),
+              child: Text('Sign Up'),
             ),
           ],
         ),
@@ -43,4 +47,3 @@ class LoginScreen extends StatelessWidget {
     );
   }
 }
-

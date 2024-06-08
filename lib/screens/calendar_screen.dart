@@ -1,14 +1,14 @@
-// lib/screens/home_screen.dart
+// lib/screens/calendar_screen.dart
 import 'package:flutter/material.dart';
 import '../widgets/bottom_nav_bar.dart';
 
-class HomeScreen extends StatefulWidget {
+class CalendarScreen extends StatefulWidget {
   @override
-  _HomeScreenState createState() => _HomeScreenState();
+  _CalendarScreenState createState() => _CalendarScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
-  int _selectedIndex = 2;
+class _CalendarScreenState extends State<CalendarScreen> {
+  int _selectedIndex = 0;
 
   void _onItemTapped(int index) {
     setState(() {
@@ -35,7 +35,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<bool> _onWillPop() async {
-    Navigator.pushReplacementNamed(context, '/login');
+    Navigator.pushReplacementNamed(context, '/home');
     return false;
   }
 
@@ -45,10 +45,10 @@ class _HomeScreenState extends State<HomeScreen> {
       onWillPop: _onWillPop,
       child: Scaffold(
         appBar: AppBar(
-          title: Text('Home'),
+          title: Text('Calendar'),
         ),
         body: Center(
-          child: Text('Home Screen'),
+          child: Text('Calendar Screen'),
         ),
         bottomNavigationBar: BottomNavBar(
           selectedIndex: _selectedIndex,
