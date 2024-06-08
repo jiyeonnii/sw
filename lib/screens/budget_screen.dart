@@ -1,7 +1,7 @@
-// lib/screens/budget_screen.dart
 import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
 import '../widgets/bottom_nav_bar.dart';
+import '../models/transaction.dart';
 
 class BudgetScreen extends StatefulWidget {
   @override
@@ -19,7 +19,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
   @override
   void initState() {
     super.initState();
-    dailyTransactions[selectedDay] = [];
+    dailyTransactions[selectedDay] = dailyTransactions[selectedDay] ?? [];
   }
 
   void _setBalance() {
@@ -82,10 +82,9 @@ class _BudgetScreenState extends State<BudgetScreen> {
     showDialog(
       context: context,
       builder: (context) {
-        TextEditingController nameController = TextEditingController();
-        TextEditingController amountController = TextEditingController();
-        String type = '+';
-        bool isExpected = false;
+        TextEditingController memoController = TextEditingController();
+        TextEditingController incomeController = TextEditingController();
+        TextEditingController expenseController = TextEditingController();
 
         return AlertDialog(
           title: Text('Add Transaction'),
@@ -93,42 +92,18 @@ class _BudgetScreenState extends State<BudgetScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
-                controller: nameController,
-                decoration: InputDecoration(hintText: 'Enter name'),
+                controller: memoController,
+                decoration: InputDecoration(hintText: 'Memo'),
               ),
               TextField(
-                controller: amountController,
-                decoration: InputDecoration(hintText: 'Enter amount'),
+                controller: incomeController,
+                decoration: InputDecoration(hintText: '+'),
                 keyboardType: TextInputType.number,
               ),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  TextButton(
-                    onPressed: () {
-                      setState(() {
-                        type = '+';
-                      });
-                    },
-                    child: Text('+', style: TextStyle(color: type == '+' ? Colors.green : Colors.grey)),
-                  ),
-                  TextButton(
-                    onPressed: () {
-                      setState(() {
-                        type = '-';
-                      });
-                    },
-                    child: Text('-', style: TextStyle(color: type == '-' ? Colors.red : Colors.grey)),
-                  ),
-                  TextButton(
-                    onPressed: () {
-                      setState(() {
-                        isExpected = !isExpected;
-                      });
-                    },
-                    child: Text('Expected', style: TextStyle(color: isExpected ? Colors.grey : Colors.grey)),
-                  ),
-                ],
+              TextField(
+                controller: expenseController,
+                decoration: InputDecoration(hintText: '-'),
+                keyboardType: TextInputType.number,
               ),
             ],
           ),
@@ -136,22 +111,123 @@ class _BudgetScreenState extends State<BudgetScreen> {
             TextButton(
               onPressed: () {
                 setState(() {
-                  double amount = double.parse(amountController.text);
-                  Transaction newTransaction = Transaction(
-                    name: nameController.text,
-                    amount: amount,
-                    type: type,
-                    isExpected: isExpected,
-                  );
-                  if (dailyTransactions[selectedDay] != null) {
-                    dailyTransactions[selectedDay]!.add(newTransaction);
-                  } else {
-                    dailyTransactions[selectedDay] = [newTransaction];
+                  double income = incomeController.text.isNotEmpty
+                      ? double.parse(incomeController.text)
+                      : 0.0;
+                  double expense = expenseController.text.isNotEmpty
+                      ? double.parse(expenseController.text)
+                      : 0.0;
+                  if (dailyTransactions[selectedDay] == null) {
+                    dailyTransactions[selectedDay] = [];
+                  }
+                  if (income > 0) {
+                    dailyTransactions[selectedDay]!.add(Transaction(
+                      memo: memoController.text,
+                      amount: income,
+                      type: '+',
+                      isExpected: false,
+                    ));
+                  }
+                  if (expense > 0) {
+                    dailyTransactions[selectedDay]!.add(Transaction(
+                      memo: memoController.text,
+                      amount: expense,
+                      type: '-',
+                      isExpected: false,
+                    ));
                   }
                 });
                 Navigator.of(context).pop();
               },
-              child: Text('Add'),
+              child: Text('Save'),
+            ),
+            TextButton(
+              onPressed: () {
+                setState(() {
+                  double income = incomeController.text.isNotEmpty
+                      ? double.parse(incomeController.text)
+                      : 0.0;
+                  double expense = expenseController.text.isNotEmpty
+                      ? double.parse(expenseController.text)
+                      : 0.0;
+                  if (dailyTransactions[selectedDay] == null) {
+                    dailyTransactions[selectedDay] = [];
+                  }
+                  if (income > 0) {
+                    dailyTransactions[selectedDay]!.add(Transaction(
+                      memo: memoController.text,
+                      amount: income,
+                      type: '+',
+                      isExpected: true,
+                    ));
+                  }
+                  if (expense > 0) {
+                    dailyTransactions[selectedDay]!.add(Transaction(
+                      memo: memoController.text,
+                      amount: expense,
+                      type: '-',
+                      isExpected: true,
+                    ));
+                  }
+                });
+                Navigator.of(context).pop();
+              },
+              child: Text('Save as Expected'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _editTransaction(DateTime day, int index) {
+    Transaction transaction = dailyTransactions[day]![index];
+    showDialog(
+      context: context,
+      builder: (context) {
+        TextEditingController memoController =
+        TextEditingController(text: transaction.memo);
+        TextEditingController amountController =
+        TextEditingController(text: transaction.amount.toString());
+        return AlertDialog(
+          title: Text('Edit Transaction'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: memoController,
+                decoration: InputDecoration(hintText: 'Memo'),
+              ),
+              TextField(
+                controller: amountController,
+                decoration: InputDecoration(hintText: 'Amount'),
+                keyboardType: TextInputType.number,
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                setState(() {
+                  dailyTransactions[day]![index] = Transaction(
+                    memo: memoController.text,
+                    amount: double.parse(amountController.text),
+                    type: transaction.type,
+                    isExpected: transaction.isExpected,
+                  );
+                });
+                Navigator.of(context).pop();
+              },
+              child: Text('Save'),
+            ),
+            TextButton(
+              onPressed: () {
+                setState(() {
+                  dailyTransactions[day]!.removeAt(index);
+                });
+                Navigator.of(context).pop();
+              },
+              child: Text('Delete'),
             ),
           ],
         );
@@ -174,79 +250,163 @@ class _BudgetScreenState extends State<BudgetScreen> {
       }
     });
 
+    double dailyExpected = transactions.fold(0.0, (sum, item) {
+      if (item.isExpected) {
+        return sum + (item.type == '+' ? item.amount : -item.amount);
+      } else {
+        return sum;
+      }
+    });
+
     return Scaffold(
       appBar: AppBar(
         title: Text('Budget'),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.add),
+            onPressed: _addTransaction,
+          ),
+        ],
       ),
-      body: Column(
-        children: [
-          ListTile(
-            title: Text('Current Balance: \$${currentBalance.toStringAsFixed(2)}'),
-            trailing: IconButton(
-              icon: Icon(Icons.edit),
-              onPressed: _setBalance,
+      body: SingleChildScrollView(
+        child: Column(
+          children: [
+            ListTile(
+              title: Text(
+                  'Current Balance: \$${currentBalance.toStringAsFixed(2)}'),
+              trailing: IconButton(
+                icon: Icon(Icons.edit),
+                onPressed: _setBalance,
+              ),
             ),
-          ),
-          ListTile(
-            title: Text('Estimated Monthly Expenses: \$${estimatedMonthlyExpenses.toStringAsFixed(2)}'),
-            trailing: IconButton(
-              icon: Icon(Icons.edit),
-              onPressed: _setEstimatedMonthlyExpenses,
+            ListTile(
+              title: Text(
+                  'Estimated Monthly Expenses: \$${estimatedMonthlyExpenses.toStringAsFixed(2)}'),
+              trailing: IconButton(
+                icon: Icon(Icons.edit),
+                onPressed: _setEstimatedMonthlyExpenses,
+              ),
             ),
-          ),
-          TableCalendar(
-            firstDay: DateTime.utc(2010, 10, 16),
-            lastDay: DateTime.utc(2030, 3, 14),
-            focusedDay: focusedDay,
-            selectedDayPredicate: (day) {
-              return isSameDay(selectedDay, day);
-            },
-            onDaySelected: (selectedDay, focusedDay) {
-              setState(() {
-                this.selectedDay = selectedDay;
-                this.focusedDay = focusedDay;
-              });
-            },
-          ),
-          Divider(),
-          Expanded(
-            child: ListView.builder(
+            TableCalendar(
+              firstDay: DateTime.utc(2010, 10, 16),
+              lastDay: DateTime.utc(2030, 3, 14),
+              focusedDay: focusedDay,
+              selectedDayPredicate: (day) {
+                return isSameDay(selectedDay, day);
+              },
+              onDaySelected: (selectedDay, focusedDay) {
+                setState(() {
+                  this.selectedDay = selectedDay;
+                  this.focusedDay = focusedDay;
+                });
+              },
+              calendarBuilders: CalendarBuilders(
+                defaultBuilder: (context, day, focusedDay) {
+                  if (dailyTransactions[day] != null) {
+                    double dailyTotal =
+                    dailyTransactions[day]!.fold(0.0, (sum, item) {
+                      if (item.isExpected) {
+                        return sum;
+                      } else {
+                        return sum +
+                            (item.type == '+' ? item.amount : -item.amount);
+                      }
+                    });
+                    double dailyExpected =
+                    dailyTransactions[day]!.fold(0.0, (sum, item) {
+                      if (item.isExpected) {
+                        return sum +
+                            (item.type == '+' ? item.amount : -item.amount);
+                      } else {
+                        return sum;
+                      }
+                    });
+                    return Center(
+                      child: Column(
+                        children: [
+                          Text('${day.day}'),
+                          Text(
+                            '\$${dailyTotal.toStringAsFixed(2)}',
+                            style: TextStyle(
+                              color:
+                              dailyTotal >= 0 ? Colors.green : Colors.red,
+                            ),
+                          ),
+                          if (dailyExpected != 0)
+                            Text(
+                              'Expected: \$${dailyExpected.toStringAsFixed(2)}',
+                              style: TextStyle(
+                                color: Colors.grey,
+                              ),
+                            ),
+                        ],
+                      ),
+                    );
+                  } else {
+                    return Center(child: Text('${day.day}'));
+                  }
+                },
+              ),
+            ),
+            Divider(),
+            ListView.builder(
+              shrinkWrap: true,
+              physics: NeverScrollableScrollPhysics(),
               itemCount: transactions.length,
               itemBuilder: (context, index) {
                 Transaction transaction = transactions[index];
                 return ListTile(
-                  title: Text(transaction.name),
-                  subtitle: Text(transaction.amount.toString()),
-                  trailing: Text(
-                    transaction.type,
-                    style: TextStyle(
-                      color: transaction.type == '+'
-                          ? Colors.green
-                          : transaction.type == '-'
-                          ? Colors.red
-                          : Colors.grey,
-                    ),
+                  title: Text(transaction.memo),
+                  subtitle: Text('\$${transaction.amount.toStringAsFixed(2)}'),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        transaction.type,
+                        style: TextStyle(
+                          color: transaction.type == '+'
+                              ? Colors.green
+                              : transaction.type == '-'
+                              ? Colors.red
+                              : Colors.grey,
+                        ),
+                      ),
+                      IconButton(
+                        icon: Icon(Icons.edit),
+                        onPressed: () {
+                          _editTransaction(selectedDay, index);
+                        },
+                      ),
+                    ],
                   ),
                 );
               },
             ),
-          ),
-          Divider(),
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Text(
-              'Total: ${dailyTotal.toStringAsFixed(2)}',
-              style: TextStyle(
-                color: dailyTotal >= 0 ? Colors.green : Colors.red,
-                fontWeight: FontWeight.bold,
+            Divider(),
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Column(
+                children: [
+                  Text(
+                    'Total: \$${dailyTotal.toStringAsFixed(2)}',
+                    style: TextStyle(
+                      color: dailyTotal >= 0 ? Colors.green : Colors.red,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  if (dailyExpected != 0)
+                    Text(
+                      'Expected: \$${dailyExpected.toStringAsFixed(2)}',
+                      style: TextStyle(
+                        color: Colors.grey,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                ],
               ),
             ),
-          ),
-          ElevatedButton(
-            onPressed: _addTransaction,
-            child: Text('Add Transaction'),
-          ),
-        ],
+          ],
+        ),
       ),
       bottomNavigationBar: BottomNavBar(
         selectedIndex: 1,
@@ -272,18 +432,4 @@ class _BudgetScreenState extends State<BudgetScreen> {
       ),
     );
   }
-}
-
-class Transaction {
-  final String name;
-  final double amount;
-  final String type;
-  final bool isExpected;
-
-  Transaction({
-    required this.name,
-    required this.amount,
-    required this.type,
-    required this.isExpected,
-  });
 }

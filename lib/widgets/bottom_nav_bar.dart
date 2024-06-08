@@ -3,20 +3,22 @@ import 'package:flutter/material.dart';
 
 class BottomNavBar extends StatelessWidget {
   final int selectedIndex;
-  final ValueChanged<int> onTap;
+  final Function(int) onTap;
 
   BottomNavBar({required this.selectedIndex, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
     return BottomNavigationBar(
+      currentIndex: selectedIndex,
+      onTap: onTap,
       items: const <BottomNavigationBarItem>[
         BottomNavigationBarItem(
           icon: Icon(Icons.calendar_today),
           label: 'Calendar',
         ),
         BottomNavigationBarItem(
-          icon: Icon(Icons.account_balance_wallet),
+          icon: Icon(Icons.attach_money),
           label: 'Budget',
         ),
         BottomNavigationBarItem(
@@ -32,8 +34,6 @@ class BottomNavBar extends StatelessWidget {
           label: 'Diary',
         ),
       ],
-      currentIndex: selectedIndex,
-      onTap: onTap,
     );
   }
 }
