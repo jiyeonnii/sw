@@ -1,4 +1,6 @@
+// lib/screens/budget_screen.dart
 import 'package:flutter/material.dart';
+import 'package:table_calendar/table_calendar.dart';
 import '../widgets/bottom_nav_bar.dart';
 
 class BudgetScreen extends StatefulWidget {
@@ -9,16 +11,15 @@ class BudgetScreen extends StatefulWidget {
 class _BudgetScreenState extends State<BudgetScreen> {
   double currentBalance = 0.0;
   double estimatedMonthlyExpenses = 0.0;
-  Map<DateTime, double> dailyTransactions = {};
+  Map<DateTime, List<Transaction>> dailyTransactions = {};
 
-  void _addTransaction(DateTime date, double amount) {
-    setState(() {
-      if (dailyTransactions.containsKey(date)) {
-        dailyTransactions[date] = dailyTransactions[date]! + amount;
-      } else {
-        dailyTransactions[date] = amount;
-      }
-    });
+  DateTime selectedDay = DateTime.now();
+  DateTime focusedDay = DateTime.now();
+
+  @override
+  void initState() {
+    super.initState();
+    dailyTransactions[selectedDay] = [];
   }
 
   void _setBalance() {
@@ -77,8 +78,102 @@ class _BudgetScreenState extends State<BudgetScreen> {
     );
   }
 
+  void _addTransaction() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        TextEditingController nameController = TextEditingController();
+        TextEditingController amountController = TextEditingController();
+        String type = '+';
+        bool isExpected = false;
+
+        return AlertDialog(
+          title: Text('Add Transaction'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nameController,
+                decoration: InputDecoration(hintText: 'Enter name'),
+              ),
+              TextField(
+                controller: amountController,
+                decoration: InputDecoration(hintText: 'Enter amount'),
+                keyboardType: TextInputType.number,
+              ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  TextButton(
+                    onPressed: () {
+                      setState(() {
+                        type = '+';
+                      });
+                    },
+                    child: Text('+', style: TextStyle(color: type == '+' ? Colors.green : Colors.grey)),
+                  ),
+                  TextButton(
+                    onPressed: () {
+                      setState(() {
+                        type = '-';
+                      });
+                    },
+                    child: Text('-', style: TextStyle(color: type == '-' ? Colors.red : Colors.grey)),
+                  ),
+                  TextButton(
+                    onPressed: () {
+                      setState(() {
+                        isExpected = !isExpected;
+                      });
+                    },
+                    child: Text('Expected', style: TextStyle(color: isExpected ? Colors.grey : Colors.grey)),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                setState(() {
+                  double amount = double.parse(amountController.text);
+                  Transaction newTransaction = Transaction(
+                    name: nameController.text,
+                    amount: amount,
+                    type: type,
+                    isExpected: isExpected,
+                  );
+                  if (dailyTransactions[selectedDay] != null) {
+                    dailyTransactions[selectedDay]!.add(newTransaction);
+                  } else {
+                    dailyTransactions[selectedDay] = [newTransaction];
+                  }
+                });
+                Navigator.of(context).pop();
+              },
+              child: Text('Add'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  List<Transaction> _getTransactionsForDay(DateTime day) {
+    return dailyTransactions[day] ?? [];
+  }
+
   @override
   Widget build(BuildContext context) {
+    List<Transaction> transactions = _getTransactionsForDay(selectedDay);
+    double dailyTotal = transactions.fold(0.0, (sum, item) {
+      if (item.isExpected) {
+        return sum;
+      } else {
+        return sum + (item.type == '+' ? item.amount : -item.amount);
+      }
+    });
+
     return Scaffold(
       appBar: AppBar(
         title: Text('Budget'),
@@ -99,42 +194,57 @@ class _BudgetScreenState extends State<BudgetScreen> {
               onPressed: _setEstimatedMonthlyExpenses,
             ),
           ),
+          TableCalendar(
+            firstDay: DateTime.utc(2010, 10, 16),
+            lastDay: DateTime.utc(2030, 3, 14),
+            focusedDay: focusedDay,
+            selectedDayPredicate: (day) {
+              return isSameDay(selectedDay, day);
+            },
+            onDaySelected: (selectedDay, focusedDay) {
+              setState(() {
+                this.selectedDay = selectedDay;
+                this.focusedDay = focusedDay;
+              });
+            },
+          ),
+          Divider(),
           Expanded(
             child: ListView.builder(
-              itemCount: dailyTransactions.length,
+              itemCount: transactions.length,
               itemBuilder: (context, index) {
-                DateTime date = dailyTransactions.keys.elementAt(index);
+                Transaction transaction = transactions[index];
                 return ListTile(
-                  title: Text('${date.month}/${date.day}/${date.year}'),
-                  subtitle: Text('\$${dailyTransactions[date]!.toStringAsFixed(2)}'),
-                  onTap: () {
-                    showDialog(
-                      context: context,
-                      builder: (context) {
-                        TextEditingController controller = TextEditingController();
-                        return AlertDialog(
-                          title: Text('Add Transaction'),
-                          content: TextField(
-                            controller: controller,
-                            decoration: InputDecoration(hintText: 'Enter amount'),
-                            keyboardType: TextInputType.number,
-                          ),
-                          actions: [
-                            TextButton(
-                              onPressed: () {
-                                _addTransaction(date, double.parse(controller.text));
-                                Navigator.of(context).pop();
-                              },
-                              child: Text('Add'),
-                            ),
-                          ],
-                        );
-                      },
-                    );
-                  },
+                  title: Text(transaction.name),
+                  subtitle: Text(transaction.amount.toString()),
+                  trailing: Text(
+                    transaction.type,
+                    style: TextStyle(
+                      color: transaction.type == '+'
+                          ? Colors.green
+                          : transaction.type == '-'
+                          ? Colors.red
+                          : Colors.grey,
+                    ),
+                  ),
                 );
               },
             ),
+          ),
+          Divider(),
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Text(
+              'Total: ${dailyTotal.toStringAsFixed(2)}',
+              style: TextStyle(
+                color: dailyTotal >= 0 ? Colors.green : Colors.red,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: _addTransaction,
+            child: Text('Add Transaction'),
           ),
         ],
       ),
@@ -162,4 +272,18 @@ class _BudgetScreenState extends State<BudgetScreen> {
       ),
     );
   }
+}
+
+class Transaction {
+  final String name;
+  final double amount;
+  final String type;
+  final bool isExpected;
+
+  Transaction({
+    required this.name,
+    required this.amount,
+    required this.type,
+    required this.isExpected,
+  });
 }

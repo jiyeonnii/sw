@@ -3,9 +3,14 @@ import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
 import '../widgets/bottom_nav_bar.dart';
 import 'add_plan_screen.dart';
+import 'event_details_screen.dart';
 import '../models/event.dart';
 
 class HomeScreen extends StatefulWidget {
+  final String? selectedCalendar;
+
+  HomeScreen({this.selectedCalendar});
+
   @override
   _HomeScreenState createState() => _HomeScreenState();
 }
@@ -27,11 +32,28 @@ class _HomeScreenState extends State<HomeScreen> {
     return events[day] ?? [];
   }
 
+  void _updateEvent(DateTime day, Event oldEvent, Event newEvent) {
+    setState(() {
+      events[day]!.remove(oldEvent);
+      if (events[day] != null) {
+        events[day]!.add(newEvent);
+      } else {
+        events[day] = [newEvent];
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
+    final arguments = ModalRoute.of(context)?.settings.arguments as Map?;
+    String selectedCalendar = arguments != null && arguments.containsKey('selectedCalendar') ? arguments['selectedCalendar'] : 'Default';
+
+    List<Event> sortedEvents = _getEventsForDay(selectedDay);
+    sortedEvents.sort((a, b) => a.dateTime.compareTo(b.dateTime));
+
     return Scaffold(
       appBar: AppBar(
-        title: Text('Home'),
+        title: Text('Home - $selectedCalendar Calendar'),
       ),
       body: SingleChildScrollView(
         child: Column(
@@ -51,27 +73,48 @@ class _HomeScreenState extends State<HomeScreen> {
               },
               eventLoader: _getEventsForDay,
             ),
-            ..._getEventsForDay(selectedDay).map(
+            Divider(), // 구분선 추가
+            ...sortedEvents.map(
                   (event) => ListTile(
                 title: Text(event.title),
-                subtitle: Text(event.description),
+                subtitle: Text('${event.dateTime.hour}:${event.dateTime.minute} - ${event.description}'),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => EventDetailsScreen(
+                        event: event,
+                        onDelete: () {
+                          setState(() {
+                            events[selectedDay]!.remove(event);
+                          });
+                        },
+                        onUpdate: (updatedEvent) {
+                          _updateEvent(selectedDay, event, updatedEvent);
+                        },
+                      ),
+                    ),
+                  );
+                },
               ),
             ),
             ElevatedButton(
               onPressed: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => AddPlanScreen(
-                    onAdd: (event) {
-                      setState(() {
-                        if (events[selectedDay] != null) {
-                          events[selectedDay]!.add(event);
-                        } else {
-                          events[selectedDay] = [event];
-                        }
-                      });
-                    },
-                  )),
+                  MaterialPageRoute(
+                    builder: (context) => AddPlanScreen(
+                      onAdd: (event) {
+                        setState(() {
+                          if (events[selectedDay] != null) {
+                            events[selectedDay]!.add(event);
+                          } else {
+                            events[selectedDay] = [event];
+                          }
+                        });
+                      },
+                    ),
+                  ),
                 );
               },
               child: Text('Add Event'),

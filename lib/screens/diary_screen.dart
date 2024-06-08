@@ -8,52 +8,74 @@ class DiaryScreen extends StatefulWidget {
 }
 
 class _DiaryScreenState extends State<DiaryScreen> {
-  int _selectedIndex = 4;
+  List<String> diaryEntries = [];
 
-  void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
-
-    switch (index) {
-      case 0:
-        Navigator.pushNamed(context, '/calendar');
-        break;
-      case 1:
-        Navigator.pushNamed(context, '/budget');
-        break;
-      case 2:
-        Navigator.pushNamed(context, '/home');
-        break;
-      case 3:
-        Navigator.pushNamed(context, '/map');
-        break;
-      case 4:
-        Navigator.pushNamed(context, '/diary');
-        break;
-    }
-  }
-
-  Future<bool> _onWillPop() async {
-    Navigator.pushReplacementNamed(context, '/home');
-    return false;
+  void _addEntry() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        TextEditingController entryController = TextEditingController();
+        return AlertDialog(
+          title: Text('New Diary Entry'),
+          content: TextField(
+            controller: entryController,
+            decoration: InputDecoration(hintText: 'Enter your thoughts'),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                setState(() {
+                  diaryEntries.add(entryController.text);
+                });
+                Navigator.of(context).pop();
+              },
+              child: Text('Add'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(
-      onWillPop: _onWillPop,
-      child: Scaffold(
-        appBar: AppBar(
-          title: Text('Diary'),
-        ),
-        body: Center(
-          child: Text('Diary Screen'),
-        ),
-        bottomNavigationBar: BottomNavBar(
-          selectedIndex: _selectedIndex,
-          onTap: _onItemTapped,
-        ),
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Diary'),
+      ),
+      body: ListView.builder(
+        itemCount: diaryEntries.length,
+        itemBuilder: (context, index) {
+          return ListTile(
+            title: Text(diaryEntries[index]),
+          );
+        },
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _addEntry,
+        child: Icon(Icons.add),
+      ),
+      bottomNavigationBar: BottomNavBar(
+        selectedIndex: 4,
+        onTap: (index) {
+          switch (index) {
+            case 0:
+              Navigator.pushNamed(context, '/calendar');
+              break;
+            case 1:
+              Navigator.pushNamed(context, '/budget');
+              break;
+            case 2:
+              Navigator.pushNamed(context, '/home');
+              break;
+            case 3:
+              Navigator.pushNamed(context, '/map');
+              break;
+            case 4:
+              Navigator.pushNamed(context, '/diary');
+              break;
+          }
+        },
       ),
     );
   }

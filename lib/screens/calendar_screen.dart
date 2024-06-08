@@ -95,6 +95,12 @@ class _CalendarScreenState extends State<CalendarScreen> {
               icon: Icon(Icons.edit),
               onPressed: () => _editCalendar(index),
             ),
+            onTap: () {
+              setState(() {
+                selectedCalendar = calendars[index];
+              });
+              Navigator.pushReplacementNamed(context, '/home', arguments: {'selectedCalendar': selectedCalendar});
+            },
           );
         },
       ),
