@@ -1,39 +1,95 @@
 import 'package:flutter/material.dart';
+import '../models/event.dart';
 
-class AddPlanScreen extends StatelessWidget {
-  final DateTime selectedDay;
-  final TextEditingController nameController = TextEditingController();
-  final TextEditingController memoController = TextEditingController();
+class AddPlanScreen extends StatefulWidget {
+  final Function(Event) onAdd;
 
-  AddPlanScreen({required this.selectedDay});
+  AddPlanScreen({required this.onAdd});
+
+  @override
+  _AddPlanScreenState createState() => _AddPlanScreenState();
+}
+
+class _AddPlanScreenState extends State<AddPlanScreen> {
+  final TextEditingController titleController = TextEditingController();
+  final TextEditingController descriptionController = TextEditingController();
+  DateTime selectedDate = DateTime.now();
+  TimeOfDay selectedTime = TimeOfDay.now();
+
+  void _saveEvent() {
+    final event = Event(
+      title: titleController.text,
+      description: descriptionController.text,
+      dateTime: DateTime(
+        selectedDate.year,
+        selectedDate.month,
+        selectedDate.day,
+        selectedTime.hour,
+        selectedTime.minute,
+      ),
+    );
+    widget.onAdd(event);
+    Navigator.of(context).pop();
+  }
+
+  void _pickDate() async {
+    DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: selectedDate,
+      firstDate: DateTime.now(),
+      lastDate: DateTime(2100),
+    );
+    if (picked != null && picked != selectedDate) {
+      setState(() {
+        selectedDate = picked;
+      });
+    }
+  }
+
+  void _pickTime() async {
+    TimeOfDay? picked = await showTimePicker(
+      context: context,
+      initialTime: selectedTime,
+    );
+    if (picked != null && picked != selectedTime) {
+      setState(() {
+        selectedTime = picked;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Add Plan'),
+        title: Text('Add Event'),
       ),
       body: Padding(
-        padding: EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(16.0),
         child: Column(
           children: <Widget>[
-            Text('Selected Date: ${selectedDay.toLocal()}'),
             TextField(
-              controller: nameController,
-              decoration: InputDecoration(labelText: 'Plan Name'),
+              controller: titleController,
+              decoration: InputDecoration(labelText: 'Title'),
             ),
             TextField(
-              controller: memoController,
-              decoration: InputDecoration(labelText: 'Memo'),
+              controller: descriptionController,
+              decoration: InputDecoration(labelText: 'Description'),
             ),
-            // 알람 설정 UI 추가
+            ListTile(
+              title: Text('Date: ${selectedDate.toLocal()}'.split(' ')[0]),
+              trailing: Icon(Icons.keyboard_arrow_down),
+              onTap: _pickDate,
+            ),
+            ListTile(
+              title: Text('Time: ${selectedTime.format(context)}'),
+              trailing: Icon(Icons.keyboard_arrow_down),
+              onTap: _pickTime,
+            ),
             SizedBox(height: 20),
             ElevatedButton(
-              onPressed: () {
-                // 계획 저장 로직 추가
-                Navigator.pop(context);
-              },
-              child: Text('Save Plan'),
+              onPressed: _saveEvent,
+              child: Text('Save Event'),
             ),
           ],
         ),
