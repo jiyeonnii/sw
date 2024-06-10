@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "836098670440",
+    "project_id": "piece-of-memory-11b84",
+    "storage_bucket": "piece-of-memory-11b84.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:836098670440:android:4201805e40d1355435e0dd",
+        "android_client_info": {
+          "package_name": "com.example.piece_of_memory"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD6i4By5Pm_w71rc19owNo1v-ALzubOPoE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

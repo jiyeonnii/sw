@@ -1,0 +1,5 @@
+<resources>
+    <!-- Example global parameters -->
+    <string name="global_param_1">value1</string>
+    <string name="global_param_2">value2</string>
+</resources>

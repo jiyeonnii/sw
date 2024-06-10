@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
 import '../widgets/bottom_nav_bar.dart';
 import '../models/transaction.dart';
+import 'package:cloud_firestore/cloud_firestore.dart' as firestore;
 
 class BudgetScreen extends StatefulWidget {
   @override
@@ -12,14 +13,41 @@ class _BudgetScreenState extends State<BudgetScreen> {
   double currentBalance = 0.0;
   double estimatedMonthlyExpenses = 0.0;
   Map<DateTime, List<Transaction>> dailyTransactions = {};
-
   DateTime selectedDay = DateTime.now();
   DateTime focusedDay = DateTime.now();
+  final firestore.FirebaseFirestore _firestore =
+      firestore.FirebaseFirestore.instance;
 
   @override
   void initState() {
     super.initState();
-    dailyTransactions[selectedDay] = dailyTransactions[selectedDay] ?? [];
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    // Load balance and estimated expenses from Firestore
+    firestore.DocumentSnapshot doc =
+    await _firestore.collection('budget').doc('info').get();
+    if (doc.exists) {
+      setState(() {
+        currentBalance = doc['currentBalance'] ?? 0.0;
+        estimatedMonthlyExpenses = doc['estimatedMonthlyExpenses'] ?? 0.0;
+      });
+    }
+
+    // Load transactions from Firestore
+    firestore.QuerySnapshot querySnapshot =
+    await _firestore.collection('transactions').get();
+    for (var doc in querySnapshot.docs) {
+      DateTime date = (doc['date'] as firestore.Timestamp).toDate();
+      Transaction transaction =
+      Transaction.fromJson(doc.data() as Map<String, dynamic>);
+      if (dailyTransactions[date] == null) {
+        dailyTransactions[date] = [];
+      }
+      dailyTransactions[date]!.add(transaction);
+    }
+    setState(() {});
   }
 
   void _setBalance() {
@@ -36,10 +64,13 @@ class _BudgetScreenState extends State<BudgetScreen> {
           ),
           actions: [
             TextButton(
-              onPressed: () {
+              onPressed: () async {
                 setState(() {
                   currentBalance = double.parse(controller.text);
                 });
+                await _firestore.collection('budget').doc('info').set({
+                  'currentBalance': currentBalance,
+                }, firestore.SetOptions(merge: true));
                 Navigator.of(context).pop();
               },
               child: Text('Set'),
@@ -64,10 +95,13 @@ class _BudgetScreenState extends State<BudgetScreen> {
           ),
           actions: [
             TextButton(
-              onPressed: () {
+              onPressed: () async {
                 setState(() {
                   estimatedMonthlyExpenses = double.parse(controller.text);
                 });
+                await _firestore.collection('budget').doc('info').set({
+                  'estimatedMonthlyExpenses': estimatedMonthlyExpenses,
+                }, firestore.SetOptions(merge: true));
                 Navigator.of(context).pop();
               },
               child: Text('Set'),
@@ -109,67 +143,71 @@ class _BudgetScreenState extends State<BudgetScreen> {
           ),
           actions: [
             TextButton(
-              onPressed: () {
+              onPressed: () async {
+                double income = incomeController.text.isNotEmpty
+                    ? double.parse(incomeController.text)
+                    : 0.0;
+                double expense = expenseController.text.isNotEmpty
+                    ? double.parse(expenseController.text)
+                    : 0.0;
+
+                Transaction transaction = Transaction(
+                  memo: memoController.text,
+                  amount: income > 0 ? income : expense,
+                  type: income > 0 ? '+' : '-',
+                  isExpected: false,
+                );
+
+                if (dailyTransactions[selectedDay] == null) {
+                  dailyTransactions[selectedDay] = [];
+                }
                 setState(() {
-                  double income = incomeController.text.isNotEmpty
-                      ? double.parse(incomeController.text)
-                      : 0.0;
-                  double expense = expenseController.text.isNotEmpty
-                      ? double.parse(expenseController.text)
-                      : 0.0;
-                  if (dailyTransactions[selectedDay] == null) {
-                    dailyTransactions[selectedDay] = [];
-                  }
-                  if (income > 0) {
-                    dailyTransactions[selectedDay]!.add(Transaction(
-                      memo: memoController.text,
-                      amount: income,
-                      type: '+',
-                      isExpected: false,
-                    ));
-                  }
-                  if (expense > 0) {
-                    dailyTransactions[selectedDay]!.add(Transaction(
-                      memo: memoController.text,
-                      amount: expense,
-                      type: '-',
-                      isExpected: false,
-                    ));
-                  }
+                  dailyTransactions[selectedDay]!.add(transaction);
                 });
+
+                await _firestore.collection('transactions').add({
+                  'memo': transaction.memo,
+                  'amount': transaction.amount,
+                  'type': transaction.type,
+                  'isExpected': transaction.isExpected,
+                  'date': selectedDay,
+                });
+
                 Navigator.of(context).pop();
               },
               child: Text('Save'),
             ),
             TextButton(
-              onPressed: () {
+              onPressed: () async {
+                double income = incomeController.text.isNotEmpty
+                    ? double.parse(incomeController.text)
+                    : 0.0;
+                double expense = expenseController.text.isNotEmpty
+                    ? double.parse(expenseController.text)
+                    : 0.0;
+
+                Transaction transaction = Transaction(
+                  memo: memoController.text,
+                  amount: income > 0 ? income : expense,
+                  type: income > 0 ? '+' : '-',
+                  isExpected: true,
+                );
+
+                if (dailyTransactions[selectedDay] == null) {
+                  dailyTransactions[selectedDay] = [];
+                }
                 setState(() {
-                  double income = incomeController.text.isNotEmpty
-                      ? double.parse(incomeController.text)
-                      : 0.0;
-                  double expense = expenseController.text.isNotEmpty
-                      ? double.parse(expenseController.text)
-                      : 0.0;
-                  if (dailyTransactions[selectedDay] == null) {
-                    dailyTransactions[selectedDay] = [];
-                  }
-                  if (income > 0) {
-                    dailyTransactions[selectedDay]!.add(Transaction(
-                      memo: memoController.text,
-                      amount: income,
-                      type: '+',
-                      isExpected: true,
-                    ));
-                  }
-                  if (expense > 0) {
-                    dailyTransactions[selectedDay]!.add(Transaction(
-                      memo: memoController.text,
-                      amount: expense,
-                      type: '-',
-                      isExpected: true,
-                    ));
-                  }
+                  dailyTransactions[selectedDay]!.add(transaction);
                 });
+
+                await _firestore.collection('transactions').add({
+                  'memo': transaction.memo,
+                  'amount': transaction.amount,
+                  'type': transaction.type,
+                  'isExpected': transaction.isExpected,
+                  'date': selectedDay,
+                });
+
                 Navigator.of(context).pop();
               },
               child: Text('Save as Expected'),
@@ -207,7 +245,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
           ),
           actions: [
             TextButton(
-              onPressed: () {
+              onPressed: () async {
                 setState(() {
                   dailyTransactions[day]![index] = Transaction(
                     memo: memoController.text,
@@ -216,15 +254,52 @@ class _BudgetScreenState extends State<BudgetScreen> {
                     isExpected: transaction.isExpected,
                   );
                 });
+
+                firestore.QuerySnapshot querySnapshot = await _firestore
+                    .collection('transactions')
+                    .where('memo', isEqualTo: transaction.memo)
+                    .where('amount', isEqualTo: transaction.amount)
+                    .where('type', isEqualTo: transaction.type)
+                    .where('isExpected', isEqualTo: transaction.isExpected)
+                    .where('date', isEqualTo: day)
+                    .get();
+
+                if (querySnapshot.docs.isNotEmpty) {
+                  await _firestore
+                      .collection('transactions')
+                      .doc(querySnapshot.docs.first.id)
+                      .update({
+                    'memo': memoController.text,
+                    'amount': double.parse(amountController.text),
+                  });
+                }
+
                 Navigator.of(context).pop();
               },
               child: Text('Save'),
             ),
             TextButton(
-              onPressed: () {
+              onPressed: () async {
                 setState(() {
                   dailyTransactions[day]!.removeAt(index);
                 });
+
+                firestore.QuerySnapshot querySnapshot = await _firestore
+                    .collection('transactions')
+                    .where('memo', isEqualTo: transaction.memo)
+                    .where('amount', isEqualTo: transaction.amount)
+                    .where('type', isEqualTo: transaction.type)
+                    .where('isExpected', isEqualTo: transaction.isExpected)
+                    .where('date', isEqualTo: day)
+                    .get();
+
+                if (querySnapshot.docs.isNotEmpty) {
+                  await _firestore
+                      .collection('transactions')
+                      .doc(querySnapshot.docs.first.id)
+                      .delete();
+                }
+
                 Navigator.of(context).pop();
               },
               child: Text('Delete'),

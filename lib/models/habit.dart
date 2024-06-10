@@ -46,4 +46,22 @@ class Habit {
     String encoded = jsonEncode(habits.map((habit) => habit.toJson()).toList());
     prefs.setString('habits', encoded);
   }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'name': name,
+      'frequency': frequency,
+      'targetCount': targetCount,
+      'completionDates': completionDates.map((date) => date.toIso8601String()).toList(),
+    };
+  }
+
+  static Habit fromMap(Map<String, dynamic> map) {
+    return Habit(
+      name: map['name'],
+      frequency: map['frequency'],
+      targetCount: map['targetCount'],
+      completionDates: List<DateTime>.from(map['completionDates'].map((date) => DateTime.parse(date))),
+    );
+  }
 }

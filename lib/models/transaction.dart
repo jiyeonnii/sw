@@ -1,8 +1,9 @@
-// lib/models/transaction.dart
+import 'package:flutter/foundation.dart';
+
 class Transaction {
   final String memo;
   final double amount;
-  final String type; // '+' for income, '-' for expense
+  final String type; // '+' or '-'
   final bool isExpected;
 
   Transaction({

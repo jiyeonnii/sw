@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../widgets/bottom_nav_bar.dart';
 import '../models/habit.dart';
 
@@ -13,18 +14,44 @@ class _HomeScreenState extends State<HomeScreen> {
   DateTime selectedDay = DateTime.now();
   DateTime focusedDay = DateTime.now();
   List<Habit> habits = [];
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  User? _user;
 
   @override
   void initState() {
     super.initState();
-    // 초기화시 Habit 데이터를 로드합니다.
-    _loadHabits();
+    _user = _auth.currentUser;
+    if (_user != null) {
+      _loadHabits();
+    }
   }
 
   void _loadHabits() async {
-    List<Habit> loadedHabits = await Habit.loadHabits();
-    setState(() {
-      habits = loadedHabits;
+    if (_user == null) return;
+
+    DocumentSnapshot snapshot =
+    await _firestore.collection('users').doc(_user!.uid).get();
+    if (snapshot.exists && snapshot.data() != null) {
+      Map<String, dynamic> data = snapshot.data() as Map<String, dynamic>;
+      if (data['habits'] != null) {
+        List<dynamic> habitData = data['habits'];
+        List<Habit> loadedHabits =
+        habitData.map((habit) => Habit.fromMap(habit)).toList();
+        setState(() {
+          habits = loadedHabits;
+        });
+      }
+    }
+  }
+
+  void _saveHabits() async {
+    if (_user == null) return;
+
+    List<Map<String, dynamic>> habitData =
+    habits.map((habit) => habit.toMap()).toList();
+    await _firestore.collection('users').doc(_user!.uid).set({
+      'habits': habitData,
     });
   }
 
@@ -35,7 +62,7 @@ class _HomeScreenState extends State<HomeScreen> {
       } else {
         habit.completionDates.add(day);
       }
-      Habit.saveHabits(habits);
+      _saveHabits();
     });
   }
 
@@ -92,9 +119,11 @@ class _HomeScreenState extends State<HomeScreen> {
                         mainAxisAlignment: MainAxisAlignment.spaceAround,
                         children: List.generate(7, (index) {
                           return Checkbox(
-                            value: habit.completionDates.contains(selectedDay.add(Duration(days: index))),
+                            value: habit.completionDates.contains(
+                                selectedDay.add(Duration(days: index))),
                             onChanged: (bool? value) {
-                              _toggleHabitCompletion(habit, selectedDay.add(Duration(days: index)));
+                              _toggleHabitCompletion(habit,
+                                  selectedDay.add(Duration(days: index)));
                             },
                           );
                         }),
@@ -104,9 +133,11 @@ class _HomeScreenState extends State<HomeScreen> {
                         mainAxisAlignment: MainAxisAlignment.spaceAround,
                         children: List.generate(habit.targetCount, (index) {
                           return Checkbox(
-                            value: habit.completionDates.contains(selectedDay.add(Duration(days: index * 7))),
+                            value: habit.completionDates.contains(
+                                selectedDay.add(Duration(days: index * 7))),
                             onChanged: (bool? value) {
-                              _toggleHabitCompletion(habit, selectedDay.add(Duration(days: index * 7)));
+                              _toggleHabitCompletion(habit,
+                                  selectedDay.add(Duration(days: index * 7)));
                             },
                           );
                         }),

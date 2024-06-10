@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import '../widgets/bottom_nav_bar.dart';
@@ -31,6 +33,42 @@ class _DiaryScreenState extends State<DiaryScreen> {
 
   void _saveHabits() async {
     await Habit.saveHabits(habits);
+  }
+
+  void _saveDiaryEntry() async {
+    User? user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    await FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .collection('diaryEntries')
+        .doc(selectedDay.toIso8601String())
+        .set({
+      'mood': selectedMood,
+      'entry': entryController.text,
+      'date': selectedDay.toIso8601String(),
+    });
+  }
+
+  void _loadDiaryEntry() async {
+    User? user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    DocumentSnapshot snapshot = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .collection('diaryEntries')
+        .doc(selectedDay.toIso8601String())
+        .get();
+
+    if (snapshot.exists && snapshot.data() != null) {
+      Map<String, dynamic> data = snapshot.data() as Map<String, dynamic>;
+      setState(() {
+        selectedMood = data['mood'] ?? 'Neutral';
+        entryController.text = data['entry'] ?? '';
+      });
+    }
   }
 
   void _addHabit() {
@@ -109,6 +147,7 @@ class _DiaryScreenState extends State<DiaryScreen> {
   void _setMood(String mood) {
     setState(() {
       selectedMood = mood;
+      _saveDiaryEntry();
     });
   }
 
@@ -143,6 +182,7 @@ class _DiaryScreenState extends State<DiaryScreen> {
                   if (picked != null && picked != selectedDay)
                     setState(() {
                       selectedDay = picked;
+                      _loadDiaryEntry();
                     });
                 },
               ),
@@ -153,6 +193,9 @@ class _DiaryScreenState extends State<DiaryScreen> {
                 decoration:
                 InputDecoration(hintText: 'Write your daily entry here'),
                 maxLines: null,
+                onChanged: (value) {
+                  _saveDiaryEntry();
+                },
               ),
             ),
             ListTile(
