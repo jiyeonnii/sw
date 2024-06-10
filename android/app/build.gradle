@@ -26,7 +26,7 @@ if (flutterVersionName == null) {
 
 android {
     namespace = "com.example.piece_of_memory"
-    compileSdk = flutter.compileSdkVersion
+    compileSdkVersion 34 // 업데이트
     ndkVersion = "27.0.11902837"
 
     compileOptions {
@@ -36,15 +36,15 @@ android {
 
     defaultConfig {
         applicationId = "com.example.piece_of_memory"
-        minSdk = flutter.minSdkVersion
-        targetSdk = flutter.targetSdkVersion
-        versionCode = flutterVersionCode.toInteger()
-        versionName = flutterVersionName
+        minSdkVersion 23 // 이미 업데이트됨
+        targetSdkVersion 34 // 업데이트
+        versionCode flutterVersionCode.toInteger()
+        versionName flutterVersionName
     }
 
     buildTypes {
         release {
-            signingConfig = signingConfigs.debug
+            signingConfig signingConfigs.debug
         }
     }
 }

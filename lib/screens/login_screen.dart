@@ -19,7 +19,9 @@ class _LoginScreenState extends State<LoginScreen> {
       );
       Navigator.pushReplacementNamed(context, '/home');
     } catch (e) {
-      print(e); // 에러 처리 추가
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('Login failed: $e'),
+      ));
     }
   }
 
