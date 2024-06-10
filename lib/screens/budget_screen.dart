@@ -3,6 +3,7 @@ import 'package:table_calendar/table_calendar.dart';
 import '../widgets/bottom_nav_bar.dart';
 import '../models/transaction.dart';
 import 'package:cloud_firestore/cloud_firestore.dart' as firestore;
+import 'package:firebase_auth/firebase_auth.dart';
 
 class BudgetScreen extends StatefulWidget {
   @override
@@ -17,17 +18,25 @@ class _BudgetScreenState extends State<BudgetScreen> {
   DateTime focusedDay = DateTime.now();
   final firestore.FirebaseFirestore _firestore =
       firestore.FirebaseFirestore.instance;
+  User? _user;
 
   @override
   void initState() {
     super.initState();
-    _loadData();
+    _user = FirebaseAuth.instance.currentUser;
+    if (_user != null) {
+      _loadData();
+    }
   }
 
   Future<void> _loadData() async {
     // Load balance and estimated expenses from Firestore
-    firestore.DocumentSnapshot doc =
-    await _firestore.collection('budget').doc('info').get();
+    firestore.DocumentSnapshot doc = await _firestore
+        .collection('users')
+        .doc(_user!.uid)
+        .collection('budget')
+        .doc('info')
+        .get();
     if (doc.exists) {
       setState(() {
         currentBalance = doc['currentBalance'] ?? 0.0;
@@ -36,8 +45,11 @@ class _BudgetScreenState extends State<BudgetScreen> {
     }
 
     // Load transactions from Firestore
-    firestore.QuerySnapshot querySnapshot =
-    await _firestore.collection('transactions').get();
+    firestore.QuerySnapshot querySnapshot = await _firestore
+        .collection('users')
+        .doc(_user!.uid)
+        .collection('transactions')
+        .get();
     for (var doc in querySnapshot.docs) {
       DateTime date = (doc['date'] as firestore.Timestamp).toDate();
       Transaction transaction =
@@ -68,7 +80,12 @@ class _BudgetScreenState extends State<BudgetScreen> {
                 setState(() {
                   currentBalance = double.parse(controller.text);
                 });
-                await _firestore.collection('budget').doc('info').set({
+                await _firestore
+                    .collection('users')
+                    .doc(_user!.uid)
+                    .collection('budget')
+                    .doc('info')
+                    .set({
                   'currentBalance': currentBalance,
                 }, firestore.SetOptions(merge: true));
                 Navigator.of(context).pop();
@@ -99,7 +116,12 @@ class _BudgetScreenState extends State<BudgetScreen> {
                 setState(() {
                   estimatedMonthlyExpenses = double.parse(controller.text);
                 });
-                await _firestore.collection('budget').doc('info').set({
+                await _firestore
+                    .collection('users')
+                    .doc(_user!.uid)
+                    .collection('budget')
+                    .doc('info')
+                    .set({
                   'estimatedMonthlyExpenses': estimatedMonthlyExpenses,
                 }, firestore.SetOptions(merge: true));
                 Navigator.of(context).pop();
@@ -165,7 +187,11 @@ class _BudgetScreenState extends State<BudgetScreen> {
                   dailyTransactions[selectedDay]!.add(transaction);
                 });
 
-                await _firestore.collection('transactions').add({
+                await _firestore
+                    .collection('users')
+                    .doc(_user!.uid)
+                    .collection('transactions')
+                    .add({
                   'memo': transaction.memo,
                   'amount': transaction.amount,
                   'type': transaction.type,
@@ -200,7 +226,11 @@ class _BudgetScreenState extends State<BudgetScreen> {
                   dailyTransactions[selectedDay]!.add(transaction);
                 });
 
-                await _firestore.collection('transactions').add({
+                await _firestore
+                    .collection('users')
+                    .doc(_user!.uid)
+                    .collection('transactions')
+                    .add({
                   'memo': transaction.memo,
                   'amount': transaction.amount,
                   'type': transaction.type,
@@ -256,6 +286,8 @@ class _BudgetScreenState extends State<BudgetScreen> {
                 });
 
                 firestore.QuerySnapshot querySnapshot = await _firestore
+                    .collection('users')
+                    .doc(_user!.uid)
                     .collection('transactions')
                     .where('memo', isEqualTo: transaction.memo)
                     .where('amount', isEqualTo: transaction.amount)
@@ -266,6 +298,8 @@ class _BudgetScreenState extends State<BudgetScreen> {
 
                 if (querySnapshot.docs.isNotEmpty) {
                   await _firestore
+                      .collection('users')
+                      .doc(_user!.uid)
                       .collection('transactions')
                       .doc(querySnapshot.docs.first.id)
                       .update({
@@ -285,6 +319,8 @@ class _BudgetScreenState extends State<BudgetScreen> {
                 });
 
                 firestore.QuerySnapshot querySnapshot = await _firestore
+                    .collection('users')
+                    .doc(_user!.uid)
                     .collection('transactions')
                     .where('memo', isEqualTo: transaction.memo)
                     .where('amount', isEqualTo: transaction.amount)
@@ -295,6 +331,8 @@ class _BudgetScreenState extends State<BudgetScreen> {
 
                 if (querySnapshot.docs.isNotEmpty) {
                   await _firestore
+                      .collection('users')
+                      .doc(_user!.uid)
                       .collection('transactions')
                       .doc(querySnapshot.docs.first.id)
                       .delete();

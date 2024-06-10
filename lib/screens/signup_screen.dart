@@ -31,8 +31,18 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
       Navigator.pushReplacementNamed(context, '/login');
     } catch (e) {
+      String errorMessage = 'Sign Up failed. Please try again.';
+      if (e is FirebaseAuthException) {
+        if (e.code == 'email-already-in-use') {
+          errorMessage = 'The email address is already in use.';
+        } else if (e.code == 'invalid-email') {
+          errorMessage = 'The email address is not valid.';
+        } else if (e.code == 'weak-password') {
+          errorMessage = 'The password is too weak.';
+        }
+      }
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('Sign Up failed: $e'),
+        content: Text(errorMessage),
       ));
     }
   }

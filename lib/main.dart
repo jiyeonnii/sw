@@ -22,15 +22,15 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      initialRoute: '/login',
+      home: LoginScreen(),
       routes: {
-        '/login': (context) => LoginScreen(),
         '/signup': (context) => SignUpScreen(),
+        '/login': (context) => LoginScreen(),
         '/home': (context) => HomeScreen(),
         '/calendar': (context) => CalendarScreen(),
         '/budget': (context) => BudgetScreen(),
-        '/map': (context) => MapScreen(),
         '/diary': (context) => DiaryScreen(),
+        '/map': (context) => MapScreen(),
       },
     );
   }

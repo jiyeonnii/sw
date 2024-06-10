@@ -17,31 +17,53 @@ class _DiaryScreenState extends State<DiaryScreen> {
   TextEditingController entryController = TextEditingController();
   List<Habit> habits = [];
   String selectedMood = 'Neutral';
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  User? _user;
 
   @override
   void initState() {
     super.initState();
-    _loadHabits();
+    _user = _auth.currentUser;
+    if (_user != null) {
+      _loadHabits();
+      _loadDiaryEntry();
+    }
   }
 
   void _loadHabits() async {
-    List<Habit> loadedHabits = await Habit.loadHabits();
-    setState(() {
-      habits = loadedHabits;
-    });
+    DocumentSnapshot snapshot = await _firestore
+        .collection('users')
+        .doc(_user!.uid)
+        .collection('habits')
+        .doc('list')
+        .get();
+    if (snapshot.exists && snapshot.data() != null) {
+      setState(() {
+        habits = (snapshot['habits'] as List)
+            .map((habit) => Habit.fromMap(habit))
+            .toList();
+      });
+    }
   }
 
   void _saveHabits() async {
-    await Habit.saveHabits(habits);
+    List<Map<String, dynamic>> habitData =
+    habits.map((habit) => habit.toMap()).toList();
+    await _firestore
+        .collection('users')
+        .doc(_user!.uid)
+        .collection('habits')
+        .doc('list')
+        .set({'habits': habitData});
   }
 
   void _saveDiaryEntry() async {
-    User? user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
+    if (_user == null) return;
 
-    await FirebaseFirestore.instance
+    await _firestore
         .collection('users')
-        .doc(user.uid)
+        .doc(_user!.uid)
         .collection('diaryEntries')
         .doc(selectedDay.toIso8601String())
         .set({
@@ -52,12 +74,11 @@ class _DiaryScreenState extends State<DiaryScreen> {
   }
 
   void _loadDiaryEntry() async {
-    User? user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
+    if (_user == null) return;
 
-    DocumentSnapshot snapshot = await FirebaseFirestore.instance
+    DocumentSnapshot snapshot = await _firestore
         .collection('users')
-        .doc(user.uid)
+        .doc(_user!.uid)
         .collection('diaryEntries')
         .doc(selectedDay.toIso8601String())
         .get();
@@ -102,13 +123,13 @@ class _DiaryScreenState extends State<DiaryScreen> {
                   );
                 }).toList(),
               ),
-              if (frequency == 'Daily')
+              if (frequency == 'Daily' || frequency == 'Monthly')
                 TextField(
                   controller: countController,
                   decoration: InputDecoration(hintText: 'Times per day'),
                   keyboardType: TextInputType.number,
                 ),
-              if (frequency == 'Monthly')
+              if (frequency == 'Weekly')
                 TextField(
                   controller: countController,
                   decoration: InputDecoration(hintText: 'Times per week'),

@@ -1,5 +1,6 @@
-// lib/screens/calendar_screen.dart
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../widgets/bottom_nav_bar.dart';
 
 class CalendarScreen extends StatefulWidget {
@@ -10,6 +11,41 @@ class CalendarScreen extends StatefulWidget {
 class _CalendarScreenState extends State<CalendarScreen> {
   List<String> calendars = ['Default'];
   String selectedCalendar = 'Default';
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  User? _user;
+
+  @override
+  void initState() {
+    super.initState();
+    _user = _auth.currentUser;
+    if (_user != null) {
+      _loadCalendars();
+    }
+  }
+
+  void _loadCalendars() async {
+    DocumentSnapshot snapshot = await _firestore
+        .collection('users')
+        .doc(_user!.uid)
+        .collection('calendars')
+        .doc('list')
+        .get();
+    if (snapshot.exists && snapshot.data() != null) {
+      setState(() {
+        calendars = List<String>.from(snapshot['calendars'] ?? ['Default']);
+      });
+    }
+  }
+
+  void _saveCalendars() async {
+    await _firestore
+        .collection('users')
+        .doc(_user!.uid)
+        .collection('calendars')
+        .doc('list')
+        .set({'calendars': calendars});
+  }
 
   void _addNewCalendar() {
     showDialog(
@@ -27,6 +63,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
               onPressed: () {
                 setState(() {
                   calendars.add(controller.text);
+                  _saveCalendars();
                 });
                 Navigator.of(context).pop();
               },
@@ -54,6 +91,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
               onPressed: () {
                 setState(() {
                   calendars[index] = controller.text;
+                  _saveCalendars();
                 });
                 Navigator.of(context).pop();
               },
@@ -63,6 +101,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
               onPressed: () {
                 setState(() {
                   calendars.removeAt(index);
+                  _saveCalendars();
                 });
                 Navigator.of(context).pop();
               },
