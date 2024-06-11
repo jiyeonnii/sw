@@ -1,5 +1,6 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:piece_of_memory/screens/add_plan_screen.dart';
 import 'package:piece_of_memory/screens/home_screen.dart';
 import 'package:piece_of_memory/screens/login_screen.dart';
 import 'package:piece_of_memory/screens/signup_screen.dart';
@@ -31,6 +32,7 @@ class MyApp extends StatelessWidget {
         '/budget': (context) => BudgetScreen(),
         '/diary': (context) => DiaryScreen(),
         '/map': (context) => MapScreen(),
+        '/add-plan': (context) => AddPlanScreen(onAdd: (event) {}),
       },
     );
   }
