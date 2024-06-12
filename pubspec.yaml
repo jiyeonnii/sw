@@ -15,6 +15,8 @@ dependencies:
   firebase_core: ^3.1.0
   firebase_auth: ^5.1.0
   cloud_firestore: ^5.0.1
+  google_maps_flutter: ^2.1.1
+
   cupertino_icons: ^1.0.6
 
 dev_dependencies:
@@ -24,10 +26,5 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
-
-  assets:
-    - assets/calendar.png
-    - assets/budget.png
-    - assets/home.png
-    - assets/map.png
-    - assets/diary.png
+  # assets:
+  #   - assets/map_placeholder.png

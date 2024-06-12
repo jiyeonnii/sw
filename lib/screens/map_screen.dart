@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../widgets/bottom_nav_bar.dart';
 
 class MapScreen extends StatefulWidget {
@@ -7,8 +8,15 @@ class MapScreen extends StatefulWidget {
 }
 
 class _MapScreenState extends State<MapScreen> {
+  late GoogleMapController mapController;
+
+  final LatLng _center = const LatLng(37.7749, -122.4194); // 샌프란시스코 좌표 예시
   List<String> categories = ['Food', 'Cafe', 'Market', 'Photo'];
   List<Map<String, String>> locations = [];
+
+  void _onMapCreated(GoogleMapController controller) {
+    mapController = controller;
+  }
 
   void _addCategory() {
     showDialog(
@@ -105,9 +113,12 @@ class _MapScreenState extends State<MapScreen> {
       body: Column(
         children: [
           Expanded(
-            child: Image.asset(
-              'assets/map_placeholder.png', // 지도 이미지 또는 위젯으로 대체
-              fit: BoxFit.cover,
+            child: GoogleMap(
+              onMapCreated: _onMapCreated,
+              initialCameraPosition: CameraPosition(
+                target: _center,
+                zoom: 11.0,
+              ),
             ),
           ),
           ElevatedButton(
