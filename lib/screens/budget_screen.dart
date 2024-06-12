@@ -185,6 +185,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
                 }
                 setState(() {
                   dailyTransactions[selectedDay]!.add(transaction);
+                  currentBalance += (income - expense);
                 });
 
                 await _firestore
@@ -198,6 +199,15 @@ class _BudgetScreenState extends State<BudgetScreen> {
                   'isExpected': transaction.isExpected,
                   'date': selectedDay,
                 });
+
+                await _firestore
+                    .collection('users')
+                    .doc(_user!.uid)
+                    .collection('budget')
+                    .doc('info')
+                    .set({
+                  'currentBalance': currentBalance,
+                }, firestore.SetOptions(merge: true));
 
                 Navigator.of(context).pop();
               },
@@ -224,6 +234,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
                 }
                 setState(() {
                   dailyTransactions[selectedDay]!.add(transaction);
+                  estimatedMonthlyExpenses += (income - expense);
                 });
 
                 await _firestore
@@ -237,6 +248,15 @@ class _BudgetScreenState extends State<BudgetScreen> {
                   'isExpected': transaction.isExpected,
                   'date': selectedDay,
                 });
+
+                await _firestore
+                    .collection('users')
+                    .doc(_user!.uid)
+                    .collection('budget')
+                    .doc('info')
+                    .set({
+                  'estimatedMonthlyExpenses': estimatedMonthlyExpenses,
+                }, firestore.SetOptions(merge: true));
 
                 Navigator.of(context).pop();
               },
@@ -276,13 +296,25 @@ class _BudgetScreenState extends State<BudgetScreen> {
           actions: [
             TextButton(
               onPressed: () async {
+                double oldAmount = transaction.amount;
+                double newAmount = double.parse(amountController.text);
+
                 setState(() {
                   dailyTransactions[day]![index] = Transaction(
                     memo: memoController.text,
-                    amount: double.parse(amountController.text),
+                    amount: newAmount,
                     type: transaction.type,
                     isExpected: transaction.isExpected,
                   );
+                  if (transaction.isExpected) {
+                    estimatedMonthlyExpenses += (transaction.type == '+'
+                        ? newAmount - oldAmount
+                        : oldAmount - newAmount);
+                  } else {
+                    currentBalance += (transaction.type == '+'
+                        ? newAmount - oldAmount
+                        : oldAmount - newAmount);
+                  }
                 });
 
                 firestore.QuerySnapshot querySnapshot = await _firestore
@@ -304,9 +336,19 @@ class _BudgetScreenState extends State<BudgetScreen> {
                       .doc(querySnapshot.docs.first.id)
                       .update({
                     'memo': memoController.text,
-                    'amount': double.parse(amountController.text),
+                    'amount': newAmount,
                   });
                 }
+
+                await _firestore
+                    .collection('users')
+                    .doc(_user!.uid)
+                    .collection('budget')
+                    .doc('info')
+                    .set({
+                  'currentBalance': currentBalance,
+                  'estimatedMonthlyExpenses': estimatedMonthlyExpenses,
+                }, firestore.SetOptions(merge: true));
 
                 Navigator.of(context).pop();
               },
@@ -315,6 +357,11 @@ class _BudgetScreenState extends State<BudgetScreen> {
             TextButton(
               onPressed: () async {
                 setState(() {
+                  if (transaction.isExpected) {
+                    estimatedMonthlyExpenses -= transaction.amount;
+                  } else {
+                    currentBalance -= transaction.amount;
+                  }
                   dailyTransactions[day]!.removeAt(index);
                 });
 
@@ -337,6 +384,16 @@ class _BudgetScreenState extends State<BudgetScreen> {
                       .doc(querySnapshot.docs.first.id)
                       .delete();
                 }
+
+                await _firestore
+                    .collection('users')
+                    .doc(_user!.uid)
+                    .collection('budget')
+                    .doc('info')
+                    .set({
+                  'currentBalance': currentBalance,
+                  'estimatedMonthlyExpenses': estimatedMonthlyExpenses,
+                }, firestore.SetOptions(merge: true));
 
                 Navigator.of(context).pop();
               },
