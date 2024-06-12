@@ -77,17 +77,18 @@ class _BudgetScreenState extends State<BudgetScreen> {
           actions: [
             TextButton(
               onPressed: () async {
-                setState(() {
-                  currentBalance = double.parse(controller.text);
-                });
+                double newBalance = double.parse(controller.text);
                 await _firestore
                     .collection('users')
                     .doc(_user!.uid)
                     .collection('budget')
                     .doc('info')
                     .set({
-                  'currentBalance': currentBalance,
+                  'currentBalance': newBalance,
                 }, firestore.SetOptions(merge: true));
+                setState(() {
+                  currentBalance = newBalance;
+                });
                 Navigator.of(context).pop();
               },
               child: Text('Set'),
@@ -113,17 +114,18 @@ class _BudgetScreenState extends State<BudgetScreen> {
           actions: [
             TextButton(
               onPressed: () async {
-                setState(() {
-                  estimatedMonthlyExpenses = double.parse(controller.text);
-                });
+                double newExpenses = double.parse(controller.text);
                 await _firestore
                     .collection('users')
                     .doc(_user!.uid)
                     .collection('budget')
                     .doc('info')
                     .set({
-                  'estimatedMonthlyExpenses': estimatedMonthlyExpenses,
+                  'estimatedMonthlyExpenses': newExpenses,
                 }, firestore.SetOptions(merge: true));
+                setState(() {
+                  estimatedMonthlyExpenses = newExpenses;
+                });
                 Navigator.of(context).pop();
               },
               child: Text('Set'),
