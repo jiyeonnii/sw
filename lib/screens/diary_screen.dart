@@ -165,6 +165,139 @@ class _DiaryScreenState extends State<DiaryScreen> {
     );
   }
 
+  void _editHabit(Habit habit) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        TextEditingController habitController =
+        TextEditingController(text: habit.name);
+        TextEditingController countController = TextEditingController(
+            text: habit.frequency == 'Weekly'
+                ? '7'
+                : habit.targetCount.toString());
+        String frequency = habit.frequency;
+        return AlertDialog(
+          title: Text('Edit Habit'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: habitController,
+                decoration: InputDecoration(hintText: 'Habit Name'),
+              ),
+              DropdownButton<String>(
+                value: frequency,
+                onChanged: (String? newValue) {
+                  setState(() {
+                    frequency = newValue!;
+                  });
+                },
+                items: <String>['Daily', 'Weekly', 'Monthly']
+                    .map<DropdownMenuItem<String>>((String value) {
+                  return DropdownMenuItem<String>(
+                    value: value,
+                    child: Text(value),
+                  );
+                }).toList(),
+              ),
+              if (frequency == 'Daily' || frequency == 'Monthly')
+                TextField(
+                  controller: countController,
+                  decoration: InputDecoration(hintText: 'Times per day'),
+                  keyboardType: TextInputType.number,
+                ),
+              if (frequency == 'Weekly')
+                TextField(
+                  controller: countController,
+                  decoration: InputDecoration(hintText: 'Times per week'),
+                  keyboardType: TextInputType.number,
+                ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                setState(() {
+                  habits = habits.map((h) {
+                    if (h == habit) {
+                      return Habit(
+                        name: habitController.text,
+                        frequency: frequency,
+                        targetCount: int.parse(countController.text),
+                        completionDates: habit.completionDates,
+                      );
+                    }
+                    return h;
+                  }).toList();
+                  _saveHabits();
+                });
+                Navigator.of(context).pop();
+              },
+              child: Text('Save'),
+            ),
+            TextButton(
+              onPressed: () {
+                setState(() {
+                  habits.remove(habit);
+                  _saveHabits();
+                });
+                Navigator.of(context).pop();
+              },
+              child: Text('Delete'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: Text('Cancel'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showHabitDetails(Habit habit) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text(habit.name),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('Frequency: ${habit.frequency}'),
+              Text('Target Count: ${habit.targetCount}'),
+              Text('Completion Dates:'),
+              ...habit.completionDates.map((date) {
+                return Text(date.toIso8601String());
+              }).toList(),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: Text('Close'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _toggleHabitCompletion(Habit habit, DateTime day) {
+    setState(() {
+      if (habit.completionDates.contains(day)) {
+        habit.completionDates.remove(day);
+      } else {
+        habit.completionDates.add(day);
+      }
+      _saveHabits();
+    });
+  }
+
   void _setMood(String mood) {
     setState(() {
       selectedMood = mood;
@@ -279,6 +412,11 @@ class _DiaryScreenState extends State<DiaryScreen> {
                     ListTile(
                       title: Text(habit.name),
                       subtitle: Text(habit.frequency),
+                      onTap: () => _showHabitDetails(habit),
+                      trailing: IconButton(
+                        icon: Icon(Icons.edit),
+                        onPressed: () => _editHabit(habit),
+                      ),
                     ),
                     if (habit.frequency == 'Daily')
                       Row(

@@ -2,10 +2,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 
 class Habit {
-  final String name;
-  final String frequency; // 'Daily', 'Weekly', 'Monthly'
-  final int targetCount; // Daily: 몇번인지, Weekly: 7, Monthly: 주당 몇번인지
-  final List<DateTime> completionDates;
+  String name;
+  String frequency; // 'Daily', 'Weekly', 'Monthly'
+  int targetCount; // Daily: 몇번인지, Weekly: 7, Monthly: 주당 몇번인지
+  List<DateTime> completionDates;
 
   Habit({
     required this.name,

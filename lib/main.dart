@@ -1,6 +1,5 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
-import 'package:piece_of_memory/screens/add_plan_screen.dart';
 import 'package:piece_of_memory/screens/home_screen.dart';
 import 'package:piece_of_memory/screens/login_screen.dart';
 import 'package:piece_of_memory/screens/signup_screen.dart';
@@ -8,6 +7,8 @@ import 'package:piece_of_memory/screens/budget_screen.dart';
 import 'package:piece_of_memory/screens/diary_screen.dart';
 import 'package:piece_of_memory/screens/map_screen.dart';
 import 'package:piece_of_memory/screens/calendar_screen.dart';
+import 'package:piece_of_memory/screens/add_plan_screen.dart';
+import 'package:piece_of_memory/models/event.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -32,7 +33,11 @@ class MyApp extends StatelessWidget {
         '/budget': (context) => BudgetScreen(),
         '/diary': (context) => DiaryScreen(),
         '/map': (context) => MapScreen(),
-        '/add-plan': (context) => AddPlanScreen(onAdd: (event) {}),
+        '/addPlan': (context) => AddPlanScreen(
+          onAdd: (event) {
+            // Add your onAdd implementation here if needed.
+          },
+        ),
       },
     );
   }
