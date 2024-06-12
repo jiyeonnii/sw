@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:table_calendar/table_calendar.dart';
 import '../widgets/bottom_nav_bar.dart';
 import '../models/habit.dart';
 
@@ -19,7 +20,7 @@ class _DiaryScreenState extends State<DiaryScreen> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   User? _user;
-  List<Map<String, String>> _diaryEntries = [];
+  List<Map<String, dynamic>> _diaryEntries = [];
 
   @override
   void initState() {
@@ -69,8 +70,11 @@ class _DiaryScreenState extends State<DiaryScreen> {
       'title': titleController.text,
       'mood': selectedMood,
       'entry': entryController.text,
-      'date': selectedDay.toIso8601String(),
+      'date': selectedDay.toIso8601String().substring(0, 10),
     });
+
+    titleController.clear();
+    entryController.clear();
 
     _loadDiaryEntries(); // Save 후 목록을 다시 불러옴
   }
@@ -82,38 +86,145 @@ class _DiaryScreenState extends State<DiaryScreen> {
         .collection('users')
         .doc(_user!.uid)
         .collection('diaryEntries')
+        .where('date',
+        isEqualTo: selectedDay.toIso8601String().substring(0, 10))
         .orderBy('date', descending: true)
         .get();
 
     if (snapshot.docs.isNotEmpty) {
       setState(() {
         _diaryEntries = snapshot.docs
-            .map((doc) {
-          return {
-            'title': doc['title'] ?? '',
-            'entry': doc['entry'] ?? '',
-            'date': doc['date'] ?? '',
-          };
+            .map((doc) => {
+          'id': doc.id,
+          'title': doc['title'] ?? '',
+          'entry': doc['entry'] ?? '',
+          'mood': doc['mood'] ?? '',
+          'date': doc['date'] ?? '',
         })
-            .map((entry) => Map<String, String>.from(entry))
             .toList();
+      });
+    } else {
+      setState(() {
+        _diaryEntries = [];
       });
     }
   }
 
-  void _showDiary(String title, String content) {
+  void _showDiary(Map<String, dynamic> entry) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text(title),
-        content: Text(content),
+        title: Text(entry['title']),
+        content: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text("Date: ${entry['date']}"),
+            Text("Mood: ${entry['mood']}"),
+            SizedBox(height: 10),
+            Text(entry['entry']),
+          ],
+        ),
         actions: <Widget>[
           TextButton(
             child: Text('Close'),
             onPressed: () {
               Navigator.of(ctx).pop();
             },
-          )
+          ),
+          TextButton(
+            child: Text('Edit'),
+            onPressed: () {
+              titleController.text = entry['title'];
+              entryController.text = entry['entry'];
+              selectedMood = entry['mood'];
+              Navigator.of(ctx).pop();
+              _addDiaryEntry(isEdit: true, id: entry['id']);
+            },
+          ),
+          TextButton(
+            child: Text('Delete'),
+            onPressed: () async {
+              await _firestore
+                  .collection('users')
+                  .doc(_user!.uid)
+                  .collection('diaryEntries')
+                  .doc(entry['id'])
+                  .delete();
+              _loadDiaryEntries();
+              Navigator.of(ctx).pop();
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _addDiaryEntry({bool isEdit = false, String? id}) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(isEdit ? 'Edit Diary Entry' : 'New Diary Entry'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: titleController,
+              decoration: InputDecoration(hintText: 'Title'),
+            ),
+            TextField(
+              controller: entryController,
+              decoration: InputDecoration(hintText: 'Entry'),
+              maxLines: null,
+            ),
+            DropdownButton<String>(
+              value: selectedMood,
+              onChanged: (String? newValue) {
+                setState(() {
+                  selectedMood = newValue!;
+                });
+              },
+              items: <String>[
+                'Very Satisfied',
+                'Satisfied',
+                'Neutral',
+                'Dissatisfied',
+                'Very Dissatisfied'
+              ].map<DropdownMenuItem<String>>((String value) {
+                return DropdownMenuItem<String>(
+                  value: value,
+                  child: Text(value),
+                );
+              }).toList(),
+            ),
+          ],
+        ),
+        actions: <Widget>[
+          TextButton(
+            child: Text('Save'),
+            onPressed: () async {
+              if (isEdit && id != null) {
+                await _firestore
+                    .collection('users')
+                    .doc(_user!.uid)
+                    .collection('diaryEntries')
+                    .doc(id)
+                    .update({
+                  'title': titleController.text,
+                  'mood': selectedMood,
+                  'entry': entryController.text,
+                });
+              } else {
+                _saveDiaryEntry();
+              }
+              Navigator.of(ctx).pop();
+            },
+          ),
+          TextButton(
+            child: Text('Cancel'),
+            onPressed: () {
+              Navigator.of(ctx).pop();
+            },
+          ),
         ],
       ),
     );
@@ -245,6 +356,12 @@ class _DiaryScreenState extends State<DiaryScreen> {
             TextButton(
               onPressed: () {
                 setState(() {
+                  int targetCount = 0;
+                  if (frequency == 'Daily' || frequency == 'Monthly') {
+                    targetCount = int.parse(countController.text);
+                  } else if (frequency == 'Weekly') {
+                    targetCount = 7;
+                  }
                   habits = habits.map((h) {
                     if (h == habit) {
                       return Habit(
@@ -328,7 +445,6 @@ class _DiaryScreenState extends State<DiaryScreen> {
   void _setMood(String mood) {
     setState(() {
       selectedMood = mood;
-      _saveDiaryEntry();
     });
   }
 
@@ -341,7 +457,7 @@ class _DiaryScreenState extends State<DiaryScreen> {
       },
       child: Scaffold(
         appBar: AppBar(
-          title: Text('Daily'),
+          title: Text('Diary'),
           actions: [
             IconButton(
               icon: Icon(Icons.search),
@@ -354,92 +470,43 @@ class _DiaryScreenState extends State<DiaryScreen> {
         body: SingleChildScrollView(
           child: Column(
             children: [
-              ListTile(
-                title: Text('Select Date'),
-                trailing: IconButton(
-                  icon: Icon(Icons.calendar_today),
-                  onPressed: () async {
-                    DateTime? picked = await showDatePicker(
-                      context: context,
-                      initialDate: selectedDay,
-                      firstDate: DateTime(2000),
-                      lastDate: DateTime(2101),
-                    );
-                    if (picked != null && picked != selectedDay)
-                      setState(() {
-                        selectedDay = picked;
-                        _loadDiaryEntries();
-                      });
-                  },
-                ),
+              TableCalendar(
+                focusedDay: selectedDay,
+                firstDay: DateTime(2000),
+                lastDay: DateTime(2101),
+                selectedDayPredicate: (day) {
+                  return isSameDay(selectedDay, day);
+                },
+                onDaySelected: (selectedDay, focusedDay) {
+                  setState(() {
+                    this.selectedDay = selectedDay;
+                    _loadDiaryEntries();
+                  });
+                },
               ),
-              ListTile(
-                title: TextField(
-                  controller: titleController,
-                  decoration: InputDecoration(hintText: 'Title'),
-                ),
+              SizedBox(height: 10),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Diary Entries',
+                    style: TextStyle(fontSize: 20),
+                  ),
+                  IconButton(
+                    icon: Icon(Icons.add),
+                    onPressed: () {
+                      titleController.clear();
+                      entryController.clear();
+                      selectedMood = 'Neutral';
+                      _addDiaryEntry();
+                    },
+                  ),
+                ],
               ),
-              ListTile(
-                title: TextField(
-                  controller: entryController,
-                  decoration:
-                  InputDecoration(hintText: 'Write your daily entry here'),
-                  maxLines: null,
-                ),
-              ),
-              ListTile(
-                title: Text('Set Mood:'),
-                subtitle: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: [
-                    IconButton(
-                      icon: Icon(Icons.sentiment_very_satisfied),
-                      color: selectedMood == 'Very Satisfied'
-                          ? Colors.blue
-                          : Colors.grey,
-                      onPressed: () => _setMood('Very Satisfied'),
-                    ),
-                    IconButton(
-                      icon: Icon(Icons.sentiment_satisfied),
-                      color: selectedMood == 'Satisfied'
-                          ? Colors.blue
-                          : Colors.grey,
-                      onPressed: () => _setMood('Satisfied'),
-                    ),
-                    IconButton(
-                      icon: Icon(Icons.sentiment_neutral),
-                      color:
-                      selectedMood == 'Neutral' ? Colors.blue : Colors.grey,
-                      onPressed: () => _setMood('Neutral'),
-                    ),
-                    IconButton(
-                      icon: Icon(Icons.sentiment_dissatisfied),
-                      color: selectedMood == 'Dissatisfied'
-                          ? Colors.blue
-                          : Colors.grey,
-                      onPressed: () => _setMood('Dissatisfied'),
-                    ),
-                    IconButton(
-                      icon: Icon(Icons.sentiment_very_dissatisfied),
-                      color: selectedMood == 'Very Dissatisfied'
-                          ? Colors.blue
-                          : Colors.grey,
-                      onPressed: () => _setMood('Very Dissatisfied'),
-                    ),
-                  ],
-                ),
-              ),
-              ElevatedButton(
-                child: Text('Save'),
-                onPressed: _saveDiaryEntry,
-              ),
-              SizedBox(height: 20),
-              Text('Diary Entries', style: TextStyle(fontSize: 20)),
               ..._diaryEntries.map((entry) {
                 return ListTile(
                   title: Text(entry['title'] ?? ''),
-                  onTap: () =>
-                      _showDiary(entry['title'] ?? '', entry['entry'] ?? ''),
+                  onTap: () => _showDiary(entry),
                 );
               }).toList(),
               ListTile(
