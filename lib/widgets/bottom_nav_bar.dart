@@ -11,25 +11,45 @@ class BottomNavBar extends StatelessWidget {
     return BottomNavigationBar(
       currentIndex: selectedIndex,
       onTap: onTap,
-      items: const <BottomNavigationBarItem>[
+      items: [
         BottomNavigationBarItem(
-          icon: Icon(Icons.calendar_today),
+          icon: Image.asset(
+            'assets/calendar.png',
+            width: 24,
+            height: 24,
+          ),
           label: 'Calendar',
         ),
         BottomNavigationBarItem(
-          icon: Icon(Icons.attach_money),
+          icon: Image.asset(
+            'assets/budget.png',
+            width: 24,
+            height: 24,
+          ),
           label: 'Budget',
         ),
         BottomNavigationBarItem(
-          icon: Icon(Icons.home),
+          icon: Image.asset(
+            'assets/home.png',
+            width: 24,
+            height: 24,
+          ),
           label: 'Home',
         ),
         BottomNavigationBarItem(
-          icon: Icon(Icons.map),
+          icon: Image.asset(
+            'assets/map.png',
+            width: 24,
+            height: 24,
+          ),
           label: 'Map',
         ),
         BottomNavigationBarItem(
-          icon: Icon(Icons.book),
+          icon: Image.asset(
+            'assets/diary.png',
+            width: 24,
+            height: 24,
+          ),
           label: 'Diary',
         ),
       ],

@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'dart:convert';
 import '../widgets/bottom_nav_bar.dart';
 import '../models/habit.dart';
 
@@ -15,11 +13,13 @@ class _DiaryScreenState extends State<DiaryScreen> {
   DateTime selectedDay = DateTime.now();
   TextEditingController moodController = TextEditingController();
   TextEditingController entryController = TextEditingController();
+  TextEditingController titleController = TextEditingController();
   List<Habit> habits = [];
   String selectedMood = 'Neutral';
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   User? _user;
+  List<Map<String, String>> _diaryEntries = [];
 
   @override
   void initState() {
@@ -27,7 +27,7 @@ class _DiaryScreenState extends State<DiaryScreen> {
     _user = _auth.currentUser;
     if (_user != null) {
       _loadHabits();
-      _loadDiaryEntry();
+      _loadDiaryEntries();
     }
   }
 
@@ -65,31 +65,58 @@ class _DiaryScreenState extends State<DiaryScreen> {
         .collection('users')
         .doc(_user!.uid)
         .collection('diaryEntries')
-        .doc(selectedDay.toIso8601String())
-        .set({
+        .add({
+      'title': titleController.text,
       'mood': selectedMood,
       'entry': entryController.text,
       'date': selectedDay.toIso8601String(),
     });
+
+    _loadDiaryEntries(); // Save 후 목록을 다시 불러옴
   }
 
-  void _loadDiaryEntry() async {
+  void _loadDiaryEntries() async {
     if (_user == null) return;
 
-    DocumentSnapshot snapshot = await _firestore
+    QuerySnapshot snapshot = await _firestore
         .collection('users')
         .doc(_user!.uid)
         .collection('diaryEntries')
-        .doc(selectedDay.toIso8601String())
+        .orderBy('date', descending: true)
         .get();
 
-    if (snapshot.exists && snapshot.data() != null) {
-      Map<String, dynamic> data = snapshot.data() as Map<String, dynamic>;
+    if (snapshot.docs.isNotEmpty) {
       setState(() {
-        selectedMood = data['mood'] ?? 'Neutral';
-        entryController.text = data['entry'] ?? '';
+        _diaryEntries = snapshot.docs
+            .map((doc) {
+          return {
+            'title': doc['title'] ?? '',
+            'entry': doc['entry'] ?? '',
+            'date': doc['date'] ?? '',
+          };
+        })
+            .map((entry) => Map<String, String>.from(entry))
+            .toList();
       });
     }
+  }
+
+  void _showDiary(String title, String content) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(title),
+        content: Text(content),
+        actions: <Widget>[
+          TextButton(
+            child: Text('Close'),
+            onPressed: () {
+              Navigator.of(ctx).pop();
+            },
+          )
+        ],
+      ),
+    );
   }
 
   void _addHabit() {
@@ -341,9 +368,15 @@ class _DiaryScreenState extends State<DiaryScreen> {
                     if (picked != null && picked != selectedDay)
                       setState(() {
                         selectedDay = picked;
-                        _loadDiaryEntry();
+                        _loadDiaryEntries();
                       });
                   },
+                ),
+              ),
+              ListTile(
+                title: TextField(
+                  controller: titleController,
+                  decoration: InputDecoration(hintText: 'Title'),
                 ),
               ),
               ListTile(
@@ -352,9 +385,6 @@ class _DiaryScreenState extends State<DiaryScreen> {
                   decoration:
                   InputDecoration(hintText: 'Write your daily entry here'),
                   maxLines: null,
-                  onChanged: (value) {
-                    _saveDiaryEntry();
-                  },
                 ),
               ),
               ListTile(
@@ -399,6 +429,19 @@ class _DiaryScreenState extends State<DiaryScreen> {
                   ],
                 ),
               ),
+              ElevatedButton(
+                child: Text('Save'),
+                onPressed: _saveDiaryEntry,
+              ),
+              SizedBox(height: 20),
+              Text('Diary Entries', style: TextStyle(fontSize: 20)),
+              ..._diaryEntries.map((entry) {
+                return ListTile(
+                  title: Text(entry['title'] ?? ''),
+                  onTap: () =>
+                      _showDiary(entry['title'] ?? '', entry['entry'] ?? ''),
+                );
+              }).toList(),
               ListTile(
                 title: Text('Habits'),
                 trailing: IconButton(
