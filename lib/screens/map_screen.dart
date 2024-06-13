@@ -10,12 +10,26 @@ class MapScreen extends StatefulWidget {
 
 class _MapScreenState extends State<MapScreen> {
   late GoogleMapController mapController;
-  final LatLng _center = const LatLng(37.5665, 126.9780); // 서울 좌표
+  final LatLng _center = const LatLng(37.5665, 126.9780); // 한국 서울 좌표
+  final TextEditingController _searchController = TextEditingController();
   List<String> categories = ['Food', 'Cafe', 'Market', 'Photo'];
   List<Map<String, String>> locations = [];
 
   void _onMapCreated(GoogleMapController controller) {
     mapController = controller;
+  }
+
+  Future<void> _searchAndNavigate() async {
+    String query = _searchController.text;
+    if (query.isEmpty) return;
+
+    List<Location> locations = await locationFromAddress(query);
+    if (locations.isNotEmpty) {
+      Location location = locations.first;
+      mapController.animateCamera(CameraUpdate.newLatLng(
+        LatLng(location.latitude, location.longitude),
+      ));
+    }
   }
 
   void _addCategory() {
@@ -92,20 +106,6 @@ class _MapScreenState extends State<MapScreen> {
     );
   }
 
-  Future<void> _searchLocation(String query) async {
-    try {
-      List<Location> locations = await locationFromAddress(query);
-      if (locations.isNotEmpty) {
-        final location = locations.first;
-        final LatLng target = LatLng(location.latitude, location.longitude);
-        mapController.animateCamera(CameraUpdate.newLatLng(target));
-      }
-    } catch (e) {
-      // Handle the error here
-      print(e);
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -114,15 +114,7 @@ class _MapScreenState extends State<MapScreen> {
         actions: [
           IconButton(
             icon: Icon(Icons.search),
-            onPressed: () async {
-              final String? query = await showSearch(
-                context: context,
-                delegate: LocationSearchDelegate(),
-              );
-              if (query != null && query.isNotEmpty) {
-                _searchLocation(query);
-              }
-            },
+            onPressed: _searchAndNavigate,
           ),
           IconButton(
             icon: Icon(Icons.add),
@@ -132,6 +124,16 @@ class _MapScreenState extends State<MapScreen> {
       ),
       body: Column(
         children: [
+          TextField(
+            controller: _searchController,
+            decoration: InputDecoration(
+              hintText: 'Search location...',
+              suffixIcon: IconButton(
+                icon: Icon(Icons.search),
+                onPressed: _searchAndNavigate,
+              ),
+            ),
+          ),
           Expanded(
             child: GoogleMap(
               onMapCreated: _onMapCreated,
@@ -140,6 +142,12 @@ class _MapScreenState extends State<MapScreen> {
                 zoom: 11.0,
               ),
             ),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              // 위치 상세 보기 기능 구현
+            },
+            child: Text('View Location Details'),
           ),
           Expanded(
             child: ListView.builder(
@@ -178,30 +186,5 @@ class _MapScreenState extends State<MapScreen> {
         },
       ),
     );
-  }
-}
-
-class LocationSearchDelegate extends SearchDelegate<String> {
-  @override
-  List<Widget> buildActions(BuildContext context) {
-    return [IconButton(icon: Icon(Icons.clear), onPressed: () => query = '')];
-  }
-
-  @override
-  Widget buildLeading(BuildContext context) {
-    return IconButton(
-      icon: Icon(Icons.arrow_back),
-      onPressed: () => close(context, ''),
-    );
-  }
-
-  @override
-  Widget buildResults(BuildContext context) {
-    return Container();
-  }
-
-  @override
-  Widget buildSuggestions(BuildContext context) {
-    return Container();
   }
 }

@@ -1,5 +1,5 @@
 name: piece_of_memory
-description: "A new Flutter project."
+description: A new Flutter project.
 publish_to: 'none'
 
 version: 1.0.0+1
@@ -16,7 +16,8 @@ dependencies:
   firebase_auth: ^5.1.0
   cloud_firestore: ^5.0.1
   google_maps_flutter: ^2.1.1
-  geocoding: ^2.0.0
+  geocoding: ^2.0.4 # Geocoding 패키지 추가
+
   cupertino_icons: ^1.0.6
 
 dev_dependencies:
@@ -26,5 +27,3 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
-  # assets:
-  #   - assets/map_placeholder.png
